@@ -27,6 +27,14 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+REDDIT = "https://www.reddit.com/"
+import dotenv, os
+dotenv.load_dotenv(BASE_DIR / ".env")
+
+CLIENT_ID = os.environ.get("client_id", "")
+CLIENT_SECRET = os.environ.get("client_secret", "")
+USER_AGENT = os.environ.get("user_agent", "")
+
 
 # Application definition
 

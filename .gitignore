@@ -6,3 +6,4 @@ venv
 AI
 md5_checking
 __pycache__
+db.sqlite3
