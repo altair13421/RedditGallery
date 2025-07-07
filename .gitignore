@@ -5,5 +5,7 @@ Downloads
 venv
 AI
 md5_checking
-__pycache__
+__pycache__/
 db.sqlite3
+subs.json
+__pycache__
