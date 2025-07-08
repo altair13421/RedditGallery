@@ -35,6 +35,10 @@ CLIENT_ID = os.environ.get("client_id", "")
 CLIENT_SECRET = os.environ.get("client_secret", "")
 USER_AGENT = os.environ.get("user_agent", "")
 
+DOWNLOAD_PATH = BASE_DIR / "downloads"
+if not DOWNLOAD_PATH.exists():
+    DOWNLOAD_PATH.mkdir(parents=True, exist_ok=True)
+
 
 # Application definition
 

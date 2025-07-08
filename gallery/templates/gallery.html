@@ -1,42 +1,191 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row">
-    <h1 class="text-center mb-4">Image Gallery</h1>
-    <p class="text-muted text-center mb-4">Total Images: {{ total_images }}</p>
+<div class="container-fluid">
+    <!-- Toast Notification Container -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="downloadToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body"></div>
+        </div>
+    </div>
+
+    <!-- Lightbox Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content bg-dark">
+                <div class="modal-header border-0">
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modalImage" src="" class="img-fluid" style="max-height: 80vh;">
+                    <p id="modalCaption" class="text-white mt-2"></p>
+                </div>
+                <div class="modal-footer border-0 justify-content-between">
+                    <a id="modalDownloadBtn" href="#" class="btn btn-primary">
+                        <i class="fas fa-download me-2"></i>Download
+                    </a>
+                    <span id="imageInfo" class="text-white-50"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gallery Content -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-center mb-2">Image Gallery</h1>
+            <p class="text-muted text-center">Total Images: {{ total_images }}</p>
+        </div>
+    </div>
 
     <div class="row">
-        <div class="col-md-3 mb-3">
-            <div class="card">
+        <!-- Sidebar -->
+        <div class="col-md-2 mb-4">
+            <div class="card shadow-sm sticky-top" style="top: 20px;">
                 <div class="card-body">
-                    <h5 class="card-title">Most Viewed</h5>
-                    <p class="card-text">Click on images to view larger versions.</p>
+                    <h5 class="card-title"><i class="fas fa-chart-line me-2"></i>Most Viewed</h5>
+                    <p class="card-text text-muted small">Click on images to view larger versions.</p>
+                    <hr>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-filter me-1"></i> Filter
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-sort me-1"></i> Sort
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-9">
-            <div class="row">
+        <!-- Gallery Images -->
+        <div class="col-md-10">
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3">
                 {% for image in images %}
-                <div class="col-md-4 mb-3">
-                    <a href="{{ image.image.url }}" class="btn btn-light stretched-link">
-                        <div class="card">
-                            <div class="card-body">
-                                <img src="{{ image.link }}" class="img-fluid" alt="{{ image.post_ref.title }}" lazyload="lazy">
-                                <p class="card-text mt-2">{{ image.post_ref.title }}</p>
+                <div class="col">
+                    <div class="card h-100 shadow-sm gallery-card">
+                        <div class="position-relative">
+                            <img src="{{ image.link }}" 
+                                 class="card-img-top img-fluid gallery-image" 
+                                 alt="{{ image.post_ref.title }}" 
+                                 loading="lazy"
+                                 data-caption="{{ image.post_ref.title }}"
+                                 data-src="{{ image.link }}"
+                                 style="height: 180px; object-fit: cover; cursor: zoom-in;">
+                            <div class="position-absolute bottom-0 end-0 m-2">
+                                <button class="btn btn-sm btn-primary download-btn" 
+                                        data-url="{% url 'image_save' image.pk %}"
+                                        data-title="{{ image.post_ref.title }}"
+                                        title="Download image">
+                                    <i class="fas fa-download"></i>
+                                </button>
                             </div>
                         </div>
-                    </a>
+                        <div class="card-body p-2">
+                            <p class="card-text text-truncate small">{{ image.post_ref.title }}</p>
+                        </div>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
         </div>
     </div>
-</div>
 
-<div class="row justify-content-center mt-4">
-    <div class="col-auto">
-        <p class="text-muted">Loading images...</p>
+    <!-- Loading Indicator -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-auto">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-muted mt-2">Loading more images...</p>
+        </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap toast (make sure you have Bootstrap JS included)
+    const downloadToast = new bootstrap.Toast(document.getElementById('downloadToast'));
+    const toastBody = document.querySelector('#downloadToast .toast-body');
+
+    // Download button functionality
+    document.querySelectorAll('.download-btn').forEach(button => {
+        button.addEventListener('click', async function(event) {
+            event.preventDefault();
+            const url = this.dataset.url;
+            const icon = this.querySelector('i');
+            const originalIconClass = icon.className;
+
+            // Show loading state
+            icon.className = 'fas fa-spinner fa-spin';
+
+            try {
+                // Test if the URL is accessible (HEAD request is faster than GET)
+                const response = await fetch(url, { method: 'HEAD' });
+
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+
+                // Show success notification
+                toastBody.innerHTML = `
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    Download Completed successfully!
+                `;
+                downloadToast.show();
+
+            } catch (error) {
+                console.error('Download error:', error);
+                toastBody.innerHTML = `
+                    <i class="fas fa-times-circle text-danger me-2"></i>
+                    Download failed: ${error.message}
+                `;
+                downloadToast.show();
+            } finally {
+                // Reset icon
+                icon.className = originalIconClass;
+            }
+        });
+    });
+
+    // Lightbox viewer (optional but recommended)
+    const imageModal = new bootstrap.Modal('#imageModal');
+    document.querySelectorAll('.gallery-image').forEach(img => {
+        img.addEventListener('click', function() {
+            document.getElementById('modalImage').src = this.dataset.src || this.src;
+            imageModal.show();
+        });
+    });
+});
+</script>
+
+<style>
+.gallery-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.gallery-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+.download-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50% !important;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+.download-btn:hover {
+    opacity: 1;
+}
+#imageModal .modal-content {
+    background-color: rgba(0, 0, 0, 0.9);
+}
+</style>
 {% endblock %}
