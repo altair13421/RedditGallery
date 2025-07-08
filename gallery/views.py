@@ -1,12 +1,27 @@
 from django.shortcuts import render
 
 # Create your views here.
-from django.views.generic import ListView, View
+from django.views.generic import ListView, View, DetailView
 from django.http import HttpResponse
 
 from .models import Image, SubReddit
 import requests
 from django.conf import settings
+
+class FolderOnlyView(DetailView):
+    model = SubReddit
+    template_name = 'gallery.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        subreddit: SubReddit = self.get_object()
+        images = Image.objects.filter(subreddit=subreddit).select_related().order_by("-date_added")
+        context['total_images'] = Image.objects.count()
+        context['newest_image'] = Image.objects.order_by('-date_added').first()
+        context['subs'] = SubReddit.objects.all()
+        context["active_sub"] = subreddit.sub_reddit
+        context["images"] = images
+        return context
 
 class ImageListView(ListView):
     model = Image

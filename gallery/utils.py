@@ -245,7 +245,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                     if item["reddit_id"].__contains__("/"):
                         item["reddit_id"] = item["reddit_id"].split("/")[-1]
                     if not check_if_good_image(item["url"]):
-                        ignored, _ = IgnoredPosts.objects.create(
+                        ignored= IgnoredPosts.objects.create(
                             reddit_id=post.reddit_id
                         )
                         continue

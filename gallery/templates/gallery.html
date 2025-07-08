@@ -54,7 +54,7 @@
                 <ul class="nav flex-column">
                     {% for folder in subs %}
                     <li class="nav-item">
-                        <a class="nav-link {% if active_folder == folder.sub_reddit %}active{% endif %}" href="?">
+                        <a class="nav-link {% if active_sub == folder.sub_reddit %}active{% endif %}" href="{% url 'folder_view_detail' folder.pk %}">
                             <i class="fas fa-folder me-2"></i>{{ folder.name }}
                             <span class="badge bg-secondary float-end">{{ folder.sub_reddit }}</span>
                         </a>

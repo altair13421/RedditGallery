@@ -3,8 +3,9 @@ from . import views
 
 
 urlpatterns = [
-    path('folders', views.FolderView.as_view(), name='folder_view'),
-    path('', views.ImageListView.as_view(), name='gallery'),
+    path('', views.FolderView.as_view(), name='folder_view'),
+    path('<int:pk>/', views.FolderOnlyView.as_view(), name='folder_view_detail'),
+    path('gallery/', views.ImageListView.as_view(), name='gallery'),
     # Add more URL patterns as needed
     # path('image/<int:pk>/', views.ImageDetailView.as_view(), name='image_detail'),
     # path('upload/', views.ImageUploadView.as_view(), name='image_upload'),
