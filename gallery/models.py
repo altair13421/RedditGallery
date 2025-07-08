@@ -5,22 +5,41 @@ from django.db import models
 class SubReddit(models.Model):
     name = models.CharField(max_length=511, blank=True)
     direct_url = models.URLField(blank=True, null=True)
+    display_name = models.TextField(blank=True, null=True)
     sub_reddit = models.CharField(max_length=511, blank=True)
     added_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
-class Gallery(models.Model):
+class Post(models.Model):
     subreddit = models.ForeignKey(SubReddit, on_delete=models.SET_NULL, null=True, blank=True)
+    reddit_id = models.CharField(max_length=255, blank=True)
     link = models.URLField(blank=True)
     title = models.CharField(max_length=511, blank=True)
+    content = models.TextField(blank=True)
+    score = models.IntegerField(default=0)
+    date_added = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def check_deleted(self):
+        """
+        Check if the post is deleted by looking for a Deleted entry with the same reddit_id.
+        """
+        return Deleted.objects.filter(post=self).exists()
+
+
+class Gallery(models.Model):
+    post_ref = models.ForeignKey(Post, on_delete=models.SET_NULL, null=True, blank=True)
+    subreddit = models.ForeignKey(SubReddit, on_delete=models.SET_NULL, null=True, blank=True)
+    reddit_id = models.CharField(max_length=255, blank=True)
+    link = models.URLField(blank=True)
 
 class Image(models.Model):
+    post_ref = models.ForeignKey(Post, on_delete=models.SET_NULL, null=True, blank=True)
     subreddit = models.ForeignKey(SubReddit, on_delete=models.SET_NULL, null=True, blank=True)
     gallery = models.ForeignKey(Gallery, on_delete=models.SET_NULL, null=True, blank=True)
     reddit_id = models.CharField(max_length=255, blank=True)
     link = models.URLField(blank=True)
-    title = models.CharField(max_length=255, blank=True)
     date_added = models.DateTimeField(auto_now_add=True)
 
     @property
