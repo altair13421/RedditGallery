@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.views.generic import ListView, View
 from django.http import HttpResponse
 
-from .models import Image
+from .models import Image, SubReddit
 import requests
 from django.conf import settings
 
@@ -18,6 +18,7 @@ class ImageListView(ListView):
         context = super().get_context_data(**kwargs)
         context['total_images'] = Image.objects.count()
         context['newest_image'] = Image.objects.order_by('-date_added').first()
+        context["subs"] = SubReddit.objects.all()
         return context
 
     def get_queryset(self):
@@ -48,5 +49,15 @@ class ImageSaveView(View):
             print("couldn't save")
             ...
 
-class ImageDetailView(View): ...
+class FolderView(ListView):
+    model = SubReddit
+    template_name = 'folders.html'
+    context_object_name = 'subs'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+
+    def get_queryset(self):
+        return SubReddit.objects.select_related().all()
 

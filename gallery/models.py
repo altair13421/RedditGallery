@@ -73,3 +73,6 @@ class Settings(models.Model):
             return Settings.objects.first()
         except Settings.DoesNotExist:
             return None
+
+class IgnoredPosts(models.Model):
+    reddit_id = models.CharField(blank=True, max_length=255)

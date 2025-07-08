@@ -6,7 +6,7 @@ import json
 from bs4 import BeautifulSoup as bs
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from .models import SubReddit, Post, Gallery, Image, Deleted
+from .models import IgnoredPosts, SubReddit, Post, Gallery, Image, Deleted
 
 limit = 1000
 workers = 10
@@ -16,9 +16,9 @@ BASE_DIR = settings.BASE_DIR
 
 time_frames = [
     "day",
-    "week",
+    # "week",
     "month",
-    "year",
+    # "year",
     "all",
 ]
 type_ = [
@@ -199,6 +199,7 @@ def clean_list(download_urls: list):
             )
     return cleaned
 
+
 def check_if_good_image(url):
     """
     Checks if the URL is a valid image URL.
@@ -221,7 +222,11 @@ def write_posts(posts: list, sub_reddit: SubReddit):
     :param posts: List of posts to write.
     :param sub_reddit: SubReddit object to associate with the posts.
     """
-    for post_data in posts:
+
+    def create_posts(post_data, sub_reddit):
+        """Creates or updates a post in the database."""
+        if IgnoredPosts.objects.filter(reddit_id=post_data["id"]).exists():
+            return
         post, created = Post.objects.get_or_create(
             reddit_id=post_data["id"],
             defaults={
@@ -240,6 +245,9 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                     if item["reddit_id"].__contains__("/"):
                         item["reddit_id"] = item["reddit_id"].split("/")[-1]
                     if not check_if_good_image(item["url"]):
+                        ignored, _ = IgnoredPosts.objects.create(
+                            reddit_id=post.reddit_id
+                        )
                         continue
                     image, created = Image.objects.get_or_create(
                         reddit_id=item["reddit_id"],
@@ -263,6 +271,14 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                             gallery.save()
                             image.gallery = gallery
                             image.save()
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        future_to_url = {
+            executor.submit(create_posts, post_data, sub_reddit): post_data["id"]
+            for post_data in posts
+        }
+        for future in as_completed(future_to_url):
+            future.result()
 
 
 def get_posts(subreddit: SubReddit):
@@ -302,4 +318,4 @@ def sync_data():
     """
     subreddits = SubReddit.objects.filter(is_active=True)
     for subreddit in subreddits:
-            get_posts(subreddit)
+        get_posts(subreddit)

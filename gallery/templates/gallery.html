@@ -12,27 +12,29 @@
             <div class="toast-body"></div>
         </div>
     </div>
-
-    <!-- Lightbox Modal -->
-    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-xl">
-            <div class="modal-content bg-dark">
-                <div class="modal-header border-0">
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <img id="modalImage" src="" class="img-fluid" style="max-height: 80vh;">
-                    <p id="modalCaption" class="text-white mt-2"></p>
-                </div>
-                <div class="modal-footer border-0 justify-content-between">
-                    <a id="modalDownloadBtn" href="#" class="btn btn-primary">
+<!-- Lightbox Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-white" id="modalCaption"></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-0">
+                <img id="modalImage" src="" class="img-fluid" style="max-height: 70vh; width: auto;">
+            </div>
+            <div class="modal-footer border-0 d-block">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <a id="modalDownloadBtn" href="#" class="btn btn-sm btn-primary">
                         <i class="fas fa-download me-2"></i>Download
                     </a>
-                    <span id="imageInfo" class="text-white-50"></span>
+                    <div id="imageInfo" class="text-white-50 small"></div>
                 </div>
+                <!-- Metadata will be inserted here by JavaScript -->
             </div>
         </div>
     </div>
+</div>
 
     <!-- Gallery Content -->
     <div class="row mb-4">
@@ -44,21 +46,21 @@
 
     <div class="row">
         <!-- Sidebar -->
-        <div class="col-md-2 mb-4">
-            <div class="card shadow-sm sticky-top" style="top: 20px;">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="fas fa-chart-line me-2"></i>Most Viewed</h5>
-                    <p class="card-text text-muted small">Click on images to view larger versions.</p>
-                    <hr>
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-filter me-1"></i> Filter
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-sort me-1"></i> Sort
-                        </button>
-                    </div>
-                </div>
+        <div class="col-md-3 col-lg-2 d-md-block sidebar bg-light">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading px-3 mb-1 text-muted">
+                    <i class="fas fa-folder-tree me-2"></i>Folders
+                </h6>
+                <ul class="nav flex-column">
+                    {% for folder in subs %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_folder == folder.sub_reddit %}active{% endif %}" href="?">
+                            <i class="fas fa-folder me-2"></i>{{ folder.name }}
+                            <span class="badge bg-secondary float-end">{{ folder.sub_reddit }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
 
@@ -74,6 +76,9 @@
                                  alt="{{ image.post_ref.title }}" 
                                  loading="lazy"
                                  data-caption="{{ image.post_ref.title }}"
+                                 data-id="{{ image.pk }}"
+                                 data-score="{{ image.post_ref.score }}"
+                                 data-url="{% url 'image_save' image.pk %}"
                                  data-src="{{ image.link }}"
                                  style="height: 180px; object-fit: cover; cursor: zoom-in;">
                             <div class="position-absolute bottom-0 end-0 m-2">
@@ -151,15 +156,107 @@
             }
         });
     });
+// Lightbox viewer with full metadata display
+const imageModal = new bootstrap.Modal('#imageModal');
+document.querySelectorAll('.gallery-image').forEach(img => {
+    img.addEventListener('click', function() {
+        // Set the main image
+        document.getElementById('modalImage').src = this.dataset.src || this.src;
+        
+        // Set metadata in modal
+        document.getElementById('modalCaption').textContent = this.dataset.caption || 'Untitled';
+        document.getElementById('modalDownloadBtn').href = this.dataset.url;
+        document.getElementById('modalDownloadBtn').dataset.title = this.dataset.caption || 'image';
+        
+        // Create metadata HTML
+        const metadataHtml = `
+            <div class="row small g-2 mt-2">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-hashtag me-2 text-muted"></i>
+                        <span>ID: ${this.dataset.id}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-star me-2 text-muted"></i>
+                        <span>Score: ${this.dataset.score || 'N/A'}</span>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-link me-2 text-muted"></i>
+                        <a href="${this.src}" target="_blank" class="text-truncate">${this.src}</a>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Set dimensions when image loads
+        const modalImage = document.getElementById('modalImage');
+        const imageInfo = document.getElementById('imageInfo');
+        
+        modalImage.onload = function() {
+            imageInfo.innerHTML = `
+                ${this.naturalWidth} × ${this.naturalHeight} px
+                ${metadataHtml}
+            `;
+        };
+        
+        // Show original dimensions if already loaded
+        if (modalImage.complete) modalImage.onload();
+        
+        imageModal.show();
+// Modal download button functionality
+document.getElementById('modalDownloadBtn').addEventListener('click', async function(event) {
+    event.preventDefault();
+    const url = this.href;
+    const icon = this.querySelector('i');
+    const originalIconClass = icon.className;
+    const toastBody = document.querySelector('#downloadToast .toast-body');
+    const downloadToast = new bootstrap.Toast(document.getElementById('downloadToast'));
 
-    // Lightbox viewer (optional but recommended)
-    const imageModal = new bootstrap.Modal('#imageModal');
-    document.querySelectorAll('.gallery-image').forEach(img => {
-        img.addEventListener('click', function() {
-            document.getElementById('modalImage').src = this.dataset.src || this.src;
-            imageModal.show();
-        });
+    // Show loading state
+    icon.className = 'fas fa-spinner fa-spin';
+    this.classList.add('disabled');
+
+    try {
+        // Test if the URL is accessible (HEAD request)
+        const response = await fetch(url, { method: 'HEAD' });
+
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}`);
+        }
+
+        // Trigger actual download
+        const a = document.createElement('a');
+        a.href = url;
+        a.click();
+
+        // Show success notification
+        toastBody.innerHTML = `
+            <i class="fas fa-check-circle text-success me-2"></i>
+            Download started successfully!
+        `;
+        downloadToast.show();
+
+    } catch (error) {
+        console.error('Download error:', error);
+        toastBody.innerHTML = `
+            <i class="fas fa-times-circle text-danger me-2"></i>
+            Download failed: ${error.message}
+        `;
+        downloadToast.show();
+    } finally {
+        // Reset icon and button state
+        icon.className = originalIconClass;
+        this.classList.remove('disabled');
+    }
+});
     });
+
+});
+
 });
 </script>
 
