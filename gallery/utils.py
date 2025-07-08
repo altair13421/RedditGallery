@@ -199,6 +199,21 @@ def clean_list(download_urls: list):
             )
     return cleaned
 
+def check_if_good_image(url):
+    """
+    Checks if the URL is a valid image URL.
+    :param url: The URL to check.
+    :return: True if the URL is a valid image, False otherwise.
+    """
+    try:
+        response = requests.head(url, allow_redirects=True, timeout=10)
+        content_type = response.headers.get("Content-Type", "")
+        return content_type.startswith("image/")
+    except requests.Timeout:
+        return False
+    except requests.RequestException:
+        return False
+
 
 def write_posts(posts: list, sub_reddit: SubReddit):
     """
@@ -222,6 +237,10 @@ def write_posts(posts: list, sub_reddit: SubReddit):
             cleaned = clean_list(post_data)
             if cleaned:
                 for item in cleaned:
+                    if item["reddit_id"].__contains__("/"):
+                        item["reddit_id"] = item["reddit_id"].split("/")[-1]
+                    if not check_if_good_image(item["url"]):
+                        continue
                     image, created = Image.objects.get_or_create(
                         reddit_id=item["reddit_id"],
                         defaults={
@@ -251,9 +270,6 @@ def get_posts(subreddit: SubReddit):
         for type_of in type_:
             if type_of in ["hot", "new"]:
                 if time != "day":
-                    print(
-                        f"Skipping {subreddit.sub_reddit} for {time} time frame with {type_of} type."
-                    )
                     continue
 
             print("processed subreddit: ", subreddit.sub_reddit, time, type_of)

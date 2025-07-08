@@ -4,7 +4,7 @@
 <div class="row">
     <h1 class="text-center mb-4">Image Gallery</h1>
     <p class="text-muted text-center mb-4">Total Images: {{ total_images }}</p>
-    
+
     <div class="row">
         <div class="col-md-3 mb-3">
             <div class="card">
@@ -22,8 +22,8 @@
                     <a href="{{ image.image.url }}" class="btn btn-light stretched-link">
                         <div class="card">
                             <div class="card-body">
-                                <img src="{{ image.image.url }}" class="img-fluid" alt="{{ image.title }}">
-                                <p class="card-text mt-2">{{ image.title }}</p>
+                                <img src="{{ image.link }}" class="img-fluid" alt="{{ image.post_ref.title }}" lazyload="lazy">
+                                <p class="card-text mt-2">{{ image.post_ref.title }}</p>
                             </div>
                         </div>
                     </a>
