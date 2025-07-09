@@ -1,4 +1,5 @@
 import os
+import time
 from django.conf import settings
 import praw
 import requests
@@ -7,7 +8,7 @@ from bs4 import BeautifulSoup as bs
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .models import IgnoredPosts, SubReddit, Post, Gallery, Image, Deleted
-
+from django.db.utils import OperationalError
 limit = 1000
 workers = 10
 reddit_link = "https://www.reddit.com"
@@ -227,15 +228,23 @@ def write_posts(posts: list, sub_reddit: SubReddit):
         """Creates or updates a post in the database."""
         if IgnoredPosts.objects.filter(reddit_id=post_data["id"]).exists():
             return
-        post, created = Post.objects.get_or_create(
-            reddit_id=post_data["id"],
-            defaults={
-                "title": post_data["title"],
-                "content": post_data["content"],
-                "link": post_data["perma_url"],
-                "score": post_data["score"],
-            },
-        )
+        k = 0
+        while k < 3:
+            try:
+                post, created = Post.objects.get_or_create(
+                    reddit_id=post_data["id"],
+                    defaults={
+                        "title": post_data["title"],
+                        "content": post_data["content"],
+                        "link": post_data["perma_url"],
+                        "score": post_data["score"],
+                    },
+                )
+                break
+            except OperationalError as e:
+                time.sleep(2)
+                k += 1
+                continue
         if created:
             post.subreddit = sub_reddit
             post.save()
@@ -245,32 +254,48 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                     if item["reddit_id"].__contains__("/"):
                         item["reddit_id"] = item["reddit_id"].split("/")[-1]
                     if not check_if_good_image(item["url"]):
-                        ignored= IgnoredPosts.objects.create(
-                            reddit_id=post.reddit_id
-                        )
+                        k = 0
+                        while k < 3:
+                            try:
+                                ignored= IgnoredPosts.objects.create(
+                                    reddit_id=post.reddit_id
+                                )
+                                break
+                            except OperationalError as e:
+                                time.sleep(2)
+                                k += 1
+                                continue
                         continue
-                    image, created = Image.objects.get_or_create(
-                        reddit_id=item["reddit_id"],
-                        defaults={
-                            "link": item["url"],
-                            "subreddit": sub_reddit,
-                        },
-                    )
-                    if created:
-                        image.post_ref = post
-                        image.save()
-                        if item["gallery"]:
-                            gallery, _ = Gallery.objects.get_or_create(
+                    k = 0
+                    while k < 3:
+                        try:
+                            image, created = Image.objects.get_or_create(
                                 reddit_id=item["reddit_id"],
                                 defaults={
                                     "link": item["url"],
                                     "subreddit": sub_reddit,
                                 },
                             )
-                            gallery.post_ref = post
-                            gallery.save()
-                            image.gallery = gallery
-                            image.save()
+                            if created:
+                                image.post_ref = post
+                                image.save()
+                                if item["gallery"]:
+                                    gallery, _ = Gallery.objects.get_or_create(
+                                        reddit_id=item["reddit_id"],
+                                        defaults={
+                                            "link": item["url"],
+                                            "subreddit": sub_reddit,
+                                        },
+                                    )
+                                    gallery.post_ref = post
+                                    gallery.save()
+                                    image.gallery = gallery
+                                    image.save()
+                            break
+                        except OperationalError as e:
+                            time.sleep(2)
+                            k += 1
+                            continue
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
         future_to_url = {
