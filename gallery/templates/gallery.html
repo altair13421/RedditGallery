@@ -71,18 +71,19 @@
                 <div class="col">
                     <div class="card h-100 shadow-sm gallery-card">
                         <div class="position-relative">
-                            <img src="{{ image.link }}" 
-                                 class="card-img-top img-fluid gallery-image" 
-                                 alt="{{ image.post_ref.title }}" 
+                            <img src="{{ image.link }}"
+                                 class="card-img-top img-fluid gallery-image"
+                                 alt="{{ image.post_ref.title }}"
                                  loading="lazy"
                                  data-caption="{{ image.post_ref.title }}"
                                  data-id="{{ image.pk }}"
+                                 data-subreddit="{{ image.subreddit.sub_reddit }}"
                                  data-score="{{ image.post_ref.score }}"
                                  data-url="{% url 'image_save' image.pk %}"
                                  data-src="{{ image.link }}"
                                  style="height: 180px; object-fit: cover; cursor: zoom-in;">
                             <div class="position-absolute bottom-0 end-0 m-2">
-                                <button class="btn btn-sm btn-primary download-btn" 
+                                <button class="btn btn-sm btn-primary download-btn"
                                         data-url="{% url 'image_save' image.pk %}"
                                         data-title="{{ image.post_ref.title }}"
                                         title="Download image">
@@ -162,22 +163,28 @@ document.querySelectorAll('.gallery-image').forEach(img => {
     img.addEventListener('click', function() {
         // Set the main image
         document.getElementById('modalImage').src = this.dataset.src || this.src;
-        
+
         // Set metadata in modal
         document.getElementById('modalCaption').textContent = this.dataset.caption || 'Untitled';
         document.getElementById('modalDownloadBtn').href = this.dataset.url;
         document.getElementById('modalDownloadBtn').dataset.title = this.dataset.caption || 'image';
-        
+
         // Create metadata HTML
         const metadataHtml = `
             <div class="row small g-2 mt-2">
-                <div class="col-md-6">
+                <div class="col-md-3">
                     <div class="d-flex align-items-center">
                         <i class="fas fa-hashtag me-2 text-muted"></i>
                         <span>ID: ${this.dataset.id}</span>
                     </div>
                 </div>
                 <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-star me-2 text-muted"></i>
+                        <span>SubReddit: ${this.dataset.subreddit || 'N/A'}</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <div class="d-flex align-items-center">
                         <i class="fas fa-star me-2 text-muted"></i>
                         <span>Score: ${this.dataset.score || 'N/A'}</span>
