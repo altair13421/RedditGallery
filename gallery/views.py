@@ -1,8 +1,10 @@
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
 # Create your views here.
 from django.views.generic import ListView, View, DetailView
 from django.http import HttpResponse
+
+from .forms import SubRedditForm
 
 from .models import Image, SubReddit
 import requests
@@ -16,7 +18,7 @@ class FolderOnlyView(DetailView):
         context = super().get_context_data(**kwargs)
         subreddit: SubReddit = self.get_object()
         images = Image.objects.filter(subreddit=subreddit).select_related().order_by("-date_added")
-        context['total_images'] = Image.objects.count()
+        context['total_images'] = images.count()
         context['newest_image'] = Image.objects.order_by('-date_added').first()
         context['subs'] = SubReddit.objects.all()
         context["active_sub"] = subreddit.sub_reddit
@@ -27,7 +29,7 @@ class ImageListView(ListView):
     model = Image
     template_name = 'gallery.html'
     context_object_name = 'images'
-    # paginate_by = 12  # Optional pagination
+    paginate_by = 500 # Optional pagination
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -71,8 +73,18 @@ class FolderView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['total_images'] = Image.objects.count()
+        context["form"] = SubRedditForm()
         return context
 
     def get_queryset(self):
-        return SubReddit.objects.select_related().all()
+        return SubReddit.objects.select_related().all().order_by("sub_reddit")
 
+    def post(self, request, *args, **kwargs):
+        form = SubRedditForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("/")
+        else:
+            print("Form is not valid:", form.errors)
+            return redirect("/")

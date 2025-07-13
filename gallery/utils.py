@@ -9,8 +9,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .models import IgnoredPosts, SubReddit, Post, Gallery, Image, Deleted
 from django.db.utils import OperationalError
-limit = 1000
-workers = 10
+
+LIMIT = 1000
+workers = 5
 reddit_link = "https://www.reddit.com"
 BASE_DIR = settings.BASE_DIR
 # check if download directory exists, if not create it
@@ -63,7 +64,9 @@ def get_gallery_images(post):
     return media_data
 
 
-def get_subreddit_info(subreddit: str, time_frame: str, type_: str) -> list:
+def get_subreddit_info(
+    subreddit: str, time_frame: str, type_: str, limit: int = LIMIT
+) -> list:
     try:
         sub_data = client.subreddit(f"{subreddit}")  # * minus the "r/"
 
@@ -257,7 +260,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                         k = 0
                         while k < 3:
                             try:
-                                ignored= IgnoredPosts.objects.create(
+                                ignored = IgnoredPosts.objects.create(
                                     reddit_id=post.reddit_id
                                 )
                                 break
@@ -315,8 +318,8 @@ def get_posts(subreddit: SubReddit):
 
             print("processed subreddit: ", subreddit.sub_reddit, time, type_of)
             posts = get_subreddit_info(subreddit.sub_reddit, time, type_of)
-            subreddit.name = posts[0]["title_sub"]
-            subreddit.display_name = posts[0]["display_name"]
+            subreddit.display_name = posts[0]["title_sub"]
+            subreddit.name = posts[0]["display_name"]
             subreddit.save()
             if posts:
                 write_posts(posts[1:], subreddit)
@@ -341,6 +344,6 @@ def sync_data():
     Syncs data from the Reddit API to the local database.
     This function should be called periodically to keep the database updated.
     """
-    subreddits = SubReddit.objects.filter(is_active=True)
+    subreddits = SubReddit.objects.filter(is_active=True).order_by("sub_reddit")
     for subreddit in subreddits:
         get_posts(subreddit)

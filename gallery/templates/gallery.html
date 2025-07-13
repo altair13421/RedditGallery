@@ -39,7 +39,7 @@
     <!-- Gallery Content -->
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="text-center mb-2">Image Gallery</h1>
+            <h1 class="text-center mb-2">{% if active_sub %}{{active_sub}}{% endif %} Gallery</h1>
             <p class="text-muted text-center">Total Images: {{ total_images }}</p>
         </div>
     </div>

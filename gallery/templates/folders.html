@@ -2,6 +2,38 @@
 
 {% block content %}
 <div class="container-fluid">
+    <!-- Floating Action Button -->
+    <button type="button" class="btn btn-primary rounded-circle floating-btn" data-bs-toggle="modal" data-bs-target="#exampleModal">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Modal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Add New Item</h5>
+                    <button type="button" class="btn-close" data-bs-close="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" action="{% url 'folder_view' %}">
+                        {% csrf_token %}
+                        <!-- Your form fields here -->
+                        <div class="mb-3">
+                            <label for="sub_reddit" class="form-label">Subreddit Name</label>
+                            <input type="text" class="form-control" id="sub_reddit" name="sub_reddit" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="direct_url" class="form-label">URL</label>
+                            <input type="text" class="form-control" id="direct_url" name="direct_url" rows="3">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Folder View -->
     <div class="row p-4">
         {% for folder in subs %}
@@ -31,6 +63,19 @@
 }
 .folder-card .card-body {
     padding: 1.5rem 0.5rem;
+}
+.floating-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+    z-index: 1000;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+.floating-btn:hover {
+    transform: scale(1.1);
 }
 </style>
 {% endblock %}
