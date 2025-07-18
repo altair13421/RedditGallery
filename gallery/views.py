@@ -29,7 +29,7 @@ class ImageListView(ListView):
     model = Image
     template_name = 'gallery.html'
     context_object_name = 'images'
-    paginate_by = 500 # Optional pagination
+    paginate_by = 750 # Optional pagination
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

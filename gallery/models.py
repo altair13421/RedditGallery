@@ -29,13 +29,13 @@ class Post(models.Model):
 
 
 class Gallery(models.Model):
-    post_ref = models.ForeignKey(Post, on_delete=models.SET_NULL, null=True, blank=True)
+    post_ref = models.ForeignKey(Post, on_delete=models.CASCADE, null=True, blank=True)
     subreddit = models.ForeignKey(SubReddit, on_delete=models.SET_NULL, null=True, blank=True)
     reddit_id = models.CharField(max_length=255, blank=True)
     link = models.URLField(blank=True)
 
 class Image(models.Model):
-    post_ref = models.ForeignKey(Post, on_delete=models.SET_NULL, null=True, blank=True)
+    post_ref = models.ForeignKey(Post, on_delete=models.CASCADE, null=True, blank=True)
     subreddit = models.ForeignKey(SubReddit, on_delete=models.SET_NULL, null=True, blank=True)
     gallery = models.ForeignKey(Gallery, on_delete=models.SET_NULL, null=True, blank=True)
     reddit_id = models.CharField(max_length=255, blank=True)
