@@ -42,3 +42,5 @@ class SubRedditForm(forms.ModelForm):
             'sub_reddit': forms.TextInput(attrs={'class': 'form-control'}),
             'direct_url': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+class Settings(forms.ModelForm): ...

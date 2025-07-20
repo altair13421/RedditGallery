@@ -1,4 +1,6 @@
 from django.db import models
+import os
+from django.conf import settings
 
 # Create your models here.
 
@@ -76,3 +78,34 @@ class Settings(models.Model):
 
 class IgnoredPosts(models.Model):
     reddit_id = models.CharField(blank=True, max_length=255)
+
+
+class MainSettings(models.Model):
+    client_id = models.CharField(max_length=255, blank=True)
+    client_secret = models.CharField(max_length=255, blank=True)
+    user_agent = models.CharField(max_length=255, blank=True)
+
+    # Other User Settings can be added here
+    exluded_subreddits = models.TextField(blank=True, null=True, help_text="Comma-separated list of subreddits to ignore to view From the gallery.")
+    downloads_folder = models.CharField(max_length=255, blank=True, null=True, help_text="Folder where images will be downloaded.")
+
+    @staticmethod
+    def get_settings():
+        try:
+            return MainSettings.objects.first()
+        except MainSettings.DoesNotExist:
+            # If no settings exist, create a default one
+            default_settings = MainSettings()
+            default_settings.client_id = settings.CLIENT_ID or ''
+            default_settings.client_secret = settings.CLIENT_SECRET or ''
+            default_settings.user_agent = settings.USER_AGENT or ''
+
+            if os.name in ['nt', "NT"]:
+                default_settings.downloads_folder = 'C:\\Downloads'
+            else:
+                default_settings.downloads_folder = '~/Downloads'
+            os.makedirs(default_settings.downloads_folder, exist_ok=True)
+            default_settings.save()
+            return None
+
+
