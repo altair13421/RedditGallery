@@ -1,13 +1,14 @@
 from django import forms
-from .models import SubReddit
+from .models import MainSettings, SubReddit
 from .utils import get_subreddit_info
+
 
 class SubRedditForm(forms.ModelForm):
 
     def verify_sub_reddit(self, subreddit_name):
         """Verify if the subreddit exists and is valid."""
         try:
-            data = get_subreddit_info(subreddit_name, 'day', 'hot', limit=3)
+            data = get_subreddit_info(subreddit_name, "day", "hot", limit=3)
             if data:
                 data_sub = data[0]
                 if len(data[1:]) > 0:
@@ -26,21 +27,57 @@ class SubRedditForm(forms.ModelForm):
         subreddit_name = instance.sub_reddit.strip().lower()
         is_valid, data = self.verify_sub_reddit(subreddit_name)
         if not is_valid:
-            raise forms.ValidationError("Invalid subreddit name or subreddit does not exist.")
+            raise forms.ValidationError(
+                "Invalid subreddit name or subreddit does not exist."
+            )
         if commit:
             instance.save()
             if data:
-                instance.display_name = data.get('title_sub', '')
-                instance.name = data.get('display_name', '')
+                instance.display_name = data.get("title_sub", "")
+                instance.name = data.get("display_name", "")
                 instance.save()
         return instance
 
     class Meta:
         model = SubReddit
-        fields = ['sub_reddit', 'direct_url']
+        fields = ["sub_reddit", "direct_url"]
         widgets = {
-            'sub_reddit': forms.TextInput(attrs={'class': 'form-control'}),
-            'direct_url': forms.TextInput(attrs={'class': 'form-control'}),
+            "sub_reddit": forms.TextInput(attrs={"class": "form-control"}),
+            "direct_url": forms.TextInput(attrs={"class": "form-control"}),
         }
 
-class Settings(forms.ModelForm): ...
+
+class SettingsForm(forms.ModelForm):
+    class Meta:
+        model = MainSettings
+        fields = [
+            "__all__",
+        ]
+        widgets = {
+            "client_id": forms.PasswordInput(
+                attrs={"class": "form-control", "help_text": "Your Reddit client ID"}
+            ),
+            "client_secret": forms.PasswordInput(
+                attrs={
+                    "class": "form-control",
+                    "help_text": "Your Reddit client secret",
+                }
+            ),
+            "user_agent": forms.TextInput(
+                attrs={"class": "form-control", "help_text": "Your Reddit user agent"}
+            ),
+            "downloads_folder": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "help_text": "Path where downloads will be saved",
+                }
+            ),
+            "exluded_subreddits": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "Comma-separated list of subreddits to ignore, e.g., 'pics,funny,aww'",
+                    "help_text": "Subreddits to ignore, minus the r/ prefix",
+                }
+            ),
+        }
