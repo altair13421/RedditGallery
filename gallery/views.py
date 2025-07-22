@@ -1,62 +1,75 @@
+import os
 from django.shortcuts import redirect, render
 
 # Create your views here.
-from django.views.generic import ListView, View, DetailView
+from django.views.generic import ListView, View, DetailView, CreateView
 from django.http import HttpResponse
 
-from .forms import SubRedditForm
+from .forms import SettingsForm, SubRedditForm
 
-from .models import Image, SubReddit
+from .models import Image, MainSettings, SubReddit
 import requests
-from django.conf import settings
+
+
+def get_settings() -> MainSettings:
+    return MainSettings.get_or_create_settings()
+
 
 class FolderOnlyView(DetailView):
     model = SubReddit
-    template_name = 'gallery.html'
+    template_name = "gallery.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         subreddit: SubReddit = self.get_object()
-        images = Image.objects.filter(subreddit=subreddit).select_related().order_by("-date_added")
-        context['total_images'] = images.count()
-        context['newest_image'] = Image.objects.order_by('-date_added').first()
-        context['subs'] = SubReddit.objects.all()
+        images = (
+            Image.objects.filter(subreddit=subreddit)
+            .select_related()
+            .order_by("-date_added")
+        )
+        context["total_images"] = images.count()
+        context["newest_image"] = Image.objects.order_by("-date_added").first()
+        context["subs"] = SubReddit.objects.all()
         context["active_sub"] = subreddit.sub_reddit
         context["images"] = images
         return context
 
+
 class ImageListView(ListView):
     model = Image
-    template_name = 'gallery.html'
-    context_object_name = 'images'
-    paginate_by = 750 # Optional pagination
+    template_name = "gallery.html"
+    context_object_name = "images"
+    paginate_by = 750  # Optional pagination
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_images'] = Image.objects.count()
-        context['newest_image'] = Image.objects.order_by('-date_added').first()
+        context["total_images"] = Image.objects.count()
+        context["newest_image"] = Image.objects.order_by("-date_added").first()
         context["subs"] = SubReddit.objects.all()
         return context
 
     def get_queryset(self):
-        return Image.objects.select_related().order_by("-date_added").all()
-
+        return (
+            Image.objects.select_related()
+            .exclude(subreddit__sub_reddit__in=get_settings().excluded_subs)
+            .order_by("-date_added")
+            .all()
+        )
 
 
 class ImageSaveView(View):
     def get(self, request, pk):
         image = Image.objects.get(pk=pk)
-        download_url = image.link
         try:
             response = requests.get(image.link, stream=True)
             response.raise_for_status()
             file_path = image.link.split("/")[-1]
             file_path = file_path.split("?")[0]
-            FOLDER = settings.DOWNLOAD_PATH / image.subreddit.sub_reddit
-            if not FOLDER.exists():
-                FOLDER.mkdir(parents=True, exist_ok=True)
-            file_path = FOLDER / file_path
-            with open( file_path, 'wb') as ifile:
+            FOLDER = f"{get_settings().downloads_folder}/{image.subreddit.sub_reddit}"
+            if not os.path.exists(FOLDER):
+                os.makedirs(FOLDER, exist_ok=True)
+            file_path = f"{FOLDER}/{file_path}"
+            with open(file_path, "wb") as ifile:
                 for chunk in response.iter_content(chunk_size=1000000):
                     ifile.write(chunk)
             print("saved at ", file_path)
@@ -66,14 +79,15 @@ class ImageSaveView(View):
             print("couldn't save")
             ...
 
+
 class FolderView(ListView):
     model = SubReddit
-    template_name = 'folders.html'
-    context_object_name = 'subs'
+    template_name = "folders.html"
+    context_object_name = "subs"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_images'] = Image.objects.count()
+        context["total_images"] = Image.objects.count()
         context["form"] = SubRedditForm()
         return context
 
@@ -88,3 +102,24 @@ class FolderView(ListView):
         else:
             print("Form is not valid:", form.errors)
             return redirect("/")
+
+
+class MainSettingsView(CreateView):
+    model = MainSettings
+    template_name = "settings.html"
+    form_class = SettingsForm
+
+    def __init__(self, **kwargs):
+        if not MainSettings.objects.exists():
+            MainSettings.get_or_create_settings()
+        self.object: MainSettings = MainSettings.get_or_create_settings()
+        self.form_class = SettingsForm
+        self.initial = self.object.get_initials()
+        super().__init__(**kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+
+    def get_success_url(self):
+        return redirect("settings")  # Redirect to the settings page after saving

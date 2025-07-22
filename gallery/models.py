@@ -4,6 +4,7 @@ from django.conf import settings
 
 # Create your models here.
 
+
 class SubReddit(models.Model):
     name = models.CharField(max_length=511, blank=True)
     direct_url = models.URLField(blank=True, null=True)
@@ -13,8 +14,11 @@ class SubReddit(models.Model):
     updated_on = models.DateTimeField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
+
 class Post(models.Model):
-    subreddit = models.ForeignKey(SubReddit, on_delete=models.SET_NULL, null=True, blank=True)
+    subreddit = models.ForeignKey(
+        SubReddit, on_delete=models.SET_NULL, null=True, blank=True
+    )
     reddit_id = models.CharField(max_length=255, blank=True)
     link = models.URLField(blank=True)
     title = models.CharField(max_length=511, blank=True)
@@ -32,14 +36,21 @@ class Post(models.Model):
 
 class Gallery(models.Model):
     post_ref = models.ForeignKey(Post, on_delete=models.CASCADE, null=True, blank=True)
-    subreddit = models.ForeignKey(SubReddit, on_delete=models.SET_NULL, null=True, blank=True)
+    subreddit = models.ForeignKey(
+        SubReddit, on_delete=models.SET_NULL, null=True, blank=True
+    )
     reddit_id = models.CharField(max_length=255, blank=True)
     link = models.URLField(blank=True)
 
+
 class Image(models.Model):
     post_ref = models.ForeignKey(Post, on_delete=models.CASCADE, null=True, blank=True)
-    subreddit = models.ForeignKey(SubReddit, on_delete=models.SET_NULL, null=True, blank=True)
-    gallery = models.ForeignKey(Gallery, on_delete=models.SET_NULL, null=True, blank=True)
+    subreddit = models.ForeignKey(
+        SubReddit, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    gallery = models.ForeignKey(
+        Gallery, on_delete=models.SET_NULL, null=True, blank=True
+    )
     reddit_id = models.CharField(max_length=255, blank=True)
     link = models.URLField(blank=True)
     date_added = models.DateTimeField(auto_now_add=True)
@@ -53,9 +64,13 @@ class Image(models.Model):
 
 
 class Deleted(models.Model):
-    subreddit = models.ForeignKey(SubReddit, on_delete=models.SET_NULL, null=True, blank=True)
+    subreddit = models.ForeignKey(
+        SubReddit, on_delete=models.SET_NULL, null=True, blank=True
+    )
     image = models.ForeignKey(Image, on_delete=models.SET_NULL, null=True, blank=True)
-    gallery = models.ForeignKey(Gallery, on_delete=models.SET_NULL, null=True, blank=True)
+    gallery = models.ForeignKey(
+        Gallery, on_delete=models.SET_NULL, null=True, blank=True
+    )
     reddit_id = models.CharField(max_length=255, blank=True)
     link = models.URLField(blank=True)
     title = models.CharField(max_length=255, blank=True)
@@ -63,6 +78,7 @@ class Deleted(models.Model):
 
     def __str__(self):
         return f"{self.reddit_id} - {self.title}"
+
 
 class Settings(models.Model):
     client_id = models.CharField(max_length=255, blank=True)
@@ -76,6 +92,7 @@ class Settings(models.Model):
         except Settings.DoesNotExist:
             return None
 
+
 class IgnoredPosts(models.Model):
     reddit_id = models.CharField(blank=True, max_length=255)
 
@@ -86,26 +103,68 @@ class MainSettings(models.Model):
     user_agent = models.CharField(max_length=255, blank=True)
 
     # Other User Settings can be added here
-    exluded_subreddits = models.TextField(blank=True, null=True, help_text="Comma-separated list of subreddits to ignore to view From the gallery.")
-    downloads_folder = models.CharField(max_length=255, blank=True, null=True, help_text="Folder where images will be downloaded.")
+    exluded_subreddits = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Comma-separated list of subreddits to ignore to view From the gallery.",
+    )
+    downloads_folder = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Folder where images will be downloaded.",
+    )
 
-    @staticmethod
-    def get_settings():
+    @property
+    def excluded_subs(self):
+        """Return a list of excluded subreddits."""
+        if self.exluded_subreddits:
+            return [sub.strip() for sub in self.exluded_subreddits.split(",")]
+        return []
+
+    @classmethod
+    def get_initials(cls):
+        instance = cls.get_or_create_settings()
+        return {
+            "client_id": instance.client_id,
+            "client_secret": instance.client_secret,
+            "user_agent": instance.user_agent,
+            "exluded_subreddits": instance.exluded_subreddits,
+            "downloads_folder": instance.downloads_folder,
+        }
+
+    @classmethod
+    def get_or_create_settings(cls):
         try:
-            return MainSettings.objects.first()
-        except MainSettings.DoesNotExist:
+            obj = cls.objects.first()
+            if not obj:
+                raise cls.DoesNotExist("MainSettings instance does not exist.")
+            return obj
+        except cls.DoesNotExist:
             # If no settings exist, create a default one
-            default_settings = MainSettings()
-            default_settings.client_id = settings.CLIENT_ID or ''
-            default_settings.client_secret = settings.CLIENT_SECRET or ''
-            default_settings.user_agent = settings.USER_AGENT or ''
-
-            if os.name in ['nt', "NT"]:
-                default_settings.downloads_folder = 'C:\\Downloads'
+            default_settings = cls()
+            default_settings.client_id = settings.CLIENT_ID or ""
+            default_settings.client_secret = settings.CLIENT_SECRET or ""
+            default_settings.user_agent = settings.USER_AGENT or ""
+            if os.name in ["nt", "NT"]:
+                default_settings.downloads_folder = "C:\\Downloads"
             else:
-                default_settings.downloads_folder = '~/Downloads'
-            os.makedirs(default_settings.downloads_folder, exist_ok=True)
+                default_settings.downloads_folder = "~/Downloads"
             default_settings.save()
-            return None
+            return default_settings
 
+    def save(self, *args, **kwargs):
+        if os.path.exists(self.downloads_folder):
+            self.downloads_folder = os.path.abspath(self.downloads_folder)
+        else:
+            os.makedirs(self.downloads_folder, exist_ok=True)
+        super().save(*args, **kwargs)
 
+    def __repr__(self):
+        return "MainSettings(client_id={}, client_secret={}, user_agent={}, exluded_subreddits={}, downloads_folder={})".format(
+            self.client_id,
+            self.client_secret,
+            self.user_agent,
+            self.exluded_subreddits,
+            self.downloads_folder,
+        )

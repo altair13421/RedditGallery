@@ -1,7 +1,7 @@
 from django import forms
 from .models import MainSettings, SubReddit
 from .utils import get_subreddit_info
-
+import os
 
 class SubRedditForm(forms.ModelForm):
 
@@ -48,11 +48,34 @@ class SubRedditForm(forms.ModelForm):
 
 
 class SettingsForm(forms.ModelForm):
+
+    def save(self, commit = ...):
+        instance: MainSettings = MainSettings.get_or_create_settings()
+        print("got it?")
+        instance.client_id = self.cleaned_data.get("client_id")
+        instance.client_secret = self.cleaned_data.get("client_secret")
+        instance.user_agent = self.cleaned_data.get("user_agent")
+        instance.exluded_subreddits = self.cleaned_data.get("exluded_subreddits")
+        instance.downloads_folder = self.cleaned_data.get("downloads_folder")
+        # Ensure the downloads folder is absolute
+        print("everything is ok")
+        if instance.downloads_folder:
+            instance.downloads_folder = os.path.abspath(instance.downloads_folder)
+        if commit:
+            instance.save()
+        return instance
+
+
     class Meta:
         model = MainSettings
-        fields = [
-            "__all__",
-        ]
+        fields = (
+            "client_id",
+            "client_secret",
+            "user_agent",
+
+            "exluded_subreddits",
+            "downloads_folder",
+        )
         widgets = {
             "client_id": forms.PasswordInput(
                 attrs={"class": "form-control", "help_text": "Your Reddit client ID"}

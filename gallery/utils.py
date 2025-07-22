@@ -347,3 +347,10 @@ def sync_data():
     subreddits = SubReddit.objects.filter(is_active=True).order_by("sub_reddit")
     for subreddit in subreddits:
         get_posts(subreddit)
+
+def sync_singular(sub: SubReddit):
+    """
+    Syncs data for a specific subreddit.
+    :param sub: SubReddit object to sync.
+    """
+    get_posts(sub)
