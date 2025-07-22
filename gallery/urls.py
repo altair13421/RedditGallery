@@ -8,6 +8,8 @@ urlpatterns = [
     path('gallery/', views.ImageListView.as_view(), name='gallery'),
     # Add more URL patterns as needed
     path("settings/", views.MainSettingsView.as_view(), name="settings"),
+    path("options/", views.FolderOptionsView.as_view(), name="folder_options"),
+
     # path('image/<int:pk>/', views.ImageDetailView.as_view(), name='image_detail'),
     # path('upload/', views.ImageUploadView.as_view(), name='image_upload'),
     # path('<int:pk>/', views.ImageDetailView.as_view(), name='image_detail'),

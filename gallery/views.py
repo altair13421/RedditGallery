@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from .forms import SettingsForm, SubRedditForm
 
 from .models import Image, MainSettings, SubReddit
+from .utils import sync_data, sync_singular
 import requests
 
 
@@ -31,6 +32,7 @@ class FolderOnlyView(DetailView):
         context["newest_image"] = Image.objects.order_by("-date_added").first()
         context["subs"] = SubReddit.objects.all()
         context["active_sub"] = subreddit.sub_reddit
+        context["the_sub"] = subreddit
         context["images"] = images
         return context
 
@@ -39,7 +41,7 @@ class ImageListView(ListView):
     model = Image
     template_name = "gallery.html"
     context_object_name = "images"
-    paginate_by = 750  # Optional pagination
+    paginate_by = 1000  # Optional pagination
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -51,7 +53,7 @@ class ImageListView(ListView):
     def get_queryset(self):
         return (
             Image.objects.select_related()
-            .exclude(subreddit__sub_reddit__in=get_settings().excluded_subs)
+            .exclude(subreddit__excluded=True)
             .order_by("-date_added")
             .all()
         )
@@ -123,3 +125,31 @@ class MainSettingsView(CreateView):
 
     def get_success_url(self):
         return redirect("settings")  # Redirect to the settings page after saving
+
+class FolderOptionsView(View):
+    def post(self, request, *args, **kwargs):
+        data = request.POST
+        pk = data.get("pk", 0)
+        if pk != 0:
+            sub_reddit = SubReddit.objects.get(pk=pk)
+            if "excluded" in data.keys():
+                if sub_reddit.excluded:
+                    sub_reddit.excluded = False
+                else:
+                    sub_reddit.excluded = True
+                sub_reddit.save()
+                main_settings = MainSettings.get_or_create_settings()
+                if sub_reddit.sub_reddit not in main_settings.excluded_subs:
+                    main_settings.exluded_subreddits += f"{sub_reddit.sub_reddit},"
+                    main_settings.save()
+            elif "delete" in data.keys():
+                sub_reddit.delete()
+                return redirect("folder_view")
+            elif "sync" in data.keys():
+                sync_singular(sub_reddit)
+                pass
+            return redirect("folder_view_detail", pk=pk)
+        else:
+            if "sync" in data.keys():
+                sync_data()
+        return redirect("folder_view")

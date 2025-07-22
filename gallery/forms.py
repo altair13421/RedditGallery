@@ -3,6 +3,7 @@ from .models import MainSettings, SubReddit
 from .utils import get_subreddit_info
 import os
 
+
 class SubRedditForm(forms.ModelForm):
 
     def verify_sub_reddit(self, subreddit_name):
@@ -49,7 +50,7 @@ class SubRedditForm(forms.ModelForm):
 
 class SettingsForm(forms.ModelForm):
 
-    def save(self, commit = ...):
+    def save(self, commit=...):
         instance: MainSettings = MainSettings.get_or_create_settings()
         print("got it?")
         instance.client_id = self.cleaned_data.get("client_id")
@@ -59,12 +60,22 @@ class SettingsForm(forms.ModelForm):
         instance.downloads_folder = self.cleaned_data.get("downloads_folder")
         # Ensure the downloads folder is absolute
         print("everything is ok")
+
+        for sub in instance.excluded_subs.split(","):
+            sub_rd = SubReddit.objects.filter(sub_reddit=sub.strip())
+            if sub_rd.exists():
+                sub_rd = sub_rd.first()
+                sub_rd.excluded = True
+                sub_rd.save()
+        SubReddit.objects.filter(excluded=True).exclude(
+            sub_reddit__in=[sub.strip() for sub in instance.excluded_subs.split(",")]
+        ).update(excluded=False)
+
         if instance.downloads_folder:
             instance.downloads_folder = os.path.abspath(instance.downloads_folder)
         if commit:
             instance.save()
         return instance
-
 
     class Meta:
         model = MainSettings
@@ -72,7 +83,6 @@ class SettingsForm(forms.ModelForm):
             "client_id",
             "client_secret",
             "user_agent",
-
             "exluded_subreddits",
             "downloads_folder",
         )

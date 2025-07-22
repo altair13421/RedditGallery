@@ -13,11 +13,12 @@ class SubReddit(models.Model):
     added_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    excluded = models.BooleanField(default=False)
 
 
 class Post(models.Model):
     subreddit = models.ForeignKey(
-        SubReddit, on_delete=models.SET_NULL, null=True, blank=True
+        SubReddit, on_delete=models.CASCADE, null=True, blank=True
     )
     reddit_id = models.CharField(max_length=255, blank=True)
     link = models.URLField(blank=True)
@@ -95,6 +96,20 @@ class Settings(models.Model):
 
 class IgnoredPosts(models.Model):
     reddit_id = models.CharField(blank=True, max_length=255)
+
+
+class SavedImages(models.Model):
+    image = models.ForeignKey(Image, on_delete=models.CASCADE, null=True, blank=True)
+    subreddit = models.ForeignKey(
+        SubReddit, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    reddit_id = models.CharField(max_length=255, blank=True)
+    downloaded_at = models.FilePathField(blank=True)
+    link = models.URLField(blank=True)
+    date_added = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.reddit_id} - {self.link}"
 
 
 class MainSettings(models.Model):

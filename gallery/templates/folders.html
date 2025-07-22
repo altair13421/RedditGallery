@@ -1,6 +1,40 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<style>
+    .btn-outline-primary {
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    .btn-outline-success {
+        color: #2ecc71;
+        border-color: #2ecc71;
+    }
+    .btn-outline-success:hover {
+        background-color: #2ecc71;
+        color: white;
+    }
+    .btn-outline-danger {
+        color: #e74c3c;
+        border-color: #e74c3c;
+    }
+    .btn-outline-danger:hover {
+        background-color: #e74c3c;
+        color: white;
+    }
+    .btn-group .btn {
+        transition: all 0.3s ease;
+        margin-left: 0.5rem;
+        border-radius: 4px !important;
+    }
+    .btn-group .btn:first-child {
+        margin-left: 0;
+    }
+</style>
 <div class="container-fluid">
     <!-- Floating Action Button -->
     <button type="button" class="btn btn-primary rounded-circle floating-btn" data-bs-toggle="modal" data-bs-target="#exampleModal">
@@ -33,6 +67,24 @@
             </div>
         </div>
     </div>
+
+<!-- Gallery Content -->
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="mb-2">{% if active_sub %}{{active_sub}}{% endif %} Folders</h1>
+            <p class="text-muted">Total Images: {{ total_images }}</p>
+        </div>
+        <div class="btn-group" role="group">
+            <form method="post" action="{% url 'folder_options' %}">
+                {% csrf_token %}
+                <button type="submit" name="sync" class="btn btn-outline-success">
+                    <i class="fas fa-sync-alt me-1"></i> Sync
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
 
     <!-- Folder View -->
     <div class="row p-4">
