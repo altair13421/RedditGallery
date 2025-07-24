@@ -212,12 +212,15 @@ def check_if_good_image(url):
     """
     try:
         response = requests.head(url, allow_redirects=True, timeout=10)
+        if response.status_code != 200:
+            return False
         content_type = response.headers.get("Content-Type", "")
         return content_type.startswith("image/")
     except requests.Timeout:
         return False
     except requests.RequestException:
         return False
+
 
 
 def write_posts(posts: list, sub_reddit: SubReddit):

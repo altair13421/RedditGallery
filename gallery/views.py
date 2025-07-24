@@ -1,4 +1,5 @@
 import os
+from django.db.models.manager import BaseManager
 from django.shortcuts import redirect, render
 import requests
 
@@ -8,9 +9,9 @@ from django.http import HttpResponse
 
 from .forms import SettingsForm, SubRedditForm
 
-from .models import Image, MainSettings, SubReddit
-from .utils import sync_data, sync_singular
-
+from .models import Image, MainSettings, Post, SubReddit
+from .utils import sync_data, sync_singular, check_if_good_image
+from django.db.models import Q
 
 def get_settings() -> MainSettings:
     return MainSettings.get_or_create_settings()
@@ -147,9 +148,37 @@ class FolderOptionsView(View):
                 return redirect("folder_view")
             elif "sync" in data.keys():
                 sync_singular(sub_reddit)
-                pass
             return redirect("folder_view_detail", pk=pk)
         else:
             if "sync" in data.keys():
                 sync_data()
+            elif "clean" in data.keys():
+                posts: BaseManager[Post] = Post.objects.filter(
+                    Q(image__isnull=True) | Q(image__link__isnull=True) | Q(image__link="")
+                )
+                posts.delete()
+                images_all = Image.objects.all()
+                print("Checking images, total:", images_all.count())
+                loop_count = 0
+                delete_images = 0
+                for image in images_all:
+                    loop_count += 1
+                    if not image.link or image.link == "":
+                        print("no link")
+                        continue
+                    if not check_if_good_image(image.link):
+                        print("found")
+                        image_post = image.post_ref
+                        image_post.delete()
+                        delete_images += 1
+                print(loop_count, "images checked", delete_images, "deleted")
         return redirect("folder_view")
+
+class CleanView(View):
+    """
+    View to handle cleaning up the bad images and Posts.
+    """
+    def get(self, request, *args, **kwargs):
+        return redirect("folder_view")
+
+
