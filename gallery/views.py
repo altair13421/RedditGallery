@@ -1,5 +1,6 @@
 import os
 from django.shortcuts import redirect, render
+import requests
 
 # Create your views here.
 from django.views.generic import ListView, View, DetailView, CreateView
@@ -9,7 +10,6 @@ from .forms import SettingsForm, SubRedditForm
 
 from .models import Image, MainSettings, SubReddit
 from .utils import sync_data, sync_singular
-import requests
 
 
 def get_settings() -> MainSettings:
@@ -79,7 +79,7 @@ class ImageSaveView(View):
         except Exception as e:
             print(e)
             print("couldn't save")
-            ...
+            return HttpResponse(e)
 
 
 class FolderView(ListView):
