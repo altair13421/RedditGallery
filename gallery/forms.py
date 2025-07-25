@@ -57,18 +57,25 @@ class SettingsForm(forms.ModelForm):
         instance.client_secret = self.cleaned_data.get("client_secret")
         instance.user_agent = self.cleaned_data.get("user_agent")
         instance.exluded_subreddits = self.cleaned_data.get("exluded_subreddits")
+        instance.exluded_subreddits = (
+            ",".join(instance.exluded_subreddits)
+            if type(instance.exluded_subreddits) is list
+            else instance.exluded_subreddits
+        )
         instance.downloads_folder = self.cleaned_data.get("downloads_folder")
-        # Ensure the downloads folder is absolute
-        print("everything is ok")
-
-        for sub in instance.excluded_subs.split(","):
+        print(
+            type(self.cleaned_data.get("exluded_subreddits")),
+            self.cleaned_data.get("exluded_subreddits"),
+            type(instance.exluded_subreddits),
+        )
+        for sub in instance.exluded_subreddits.split(","):
             sub_rd = SubReddit.objects.filter(sub_reddit=sub.strip())
             if sub_rd.exists():
                 sub_rd = sub_rd.first()
                 sub_rd.excluded = True
                 sub_rd.save()
         SubReddit.objects.filter(excluded=True).exclude(
-            sub_reddit__in=[sub.strip() for sub in instance.excluded_subs.split(",")]
+            sub_reddit__in=[sub.strip() for sub in instance.exluded_subreddits.split(",")]
         ).update(excluded=False)
 
         if instance.downloads_folder:

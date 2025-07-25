@@ -1,0 +1,18 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        USER_ID: 1000  # Match host UID
+        GROUP_ID: 1000 # Match host GID
+    ports:
+      - "8800:8800"
+    volumes:
+      - ./data:/app/data  # Persist SQLite data
+      - ./:/app          # Bind-mount code (for development)
+      - /mnt/games/Scripts/Downloads:/downloads  # New mount
+    environment:
+      - SQLITE_DB_PATH=/app/data/db.sqlite3
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8800"

@@ -1,6 +1,7 @@
 import os
 from django.db.models.manager import BaseManager
 from django.shortcuts import redirect, render
+from django.urls import reverse
 import requests
 
 # Create your views here.
@@ -12,6 +13,7 @@ from .forms import SettingsForm, SubRedditForm
 from .models import Image, MainSettings, Post, SubReddit
 from .utils import sync_data, sync_singular, check_if_good_image
 from django.db.models import Q
+
 
 def get_settings() -> MainSettings:
     return MainSettings.get_or_create_settings()
@@ -125,7 +127,8 @@ class MainSettingsView(CreateView):
         return context
 
     def get_success_url(self):
-        return redirect("settings")  # Redirect to the settings page after saving
+        return reverse("settings")  # Redirect to the settings page after saving
+
 
 class FolderOptionsView(View):
     def post(self, request, *args, **kwargs):
@@ -154,10 +157,12 @@ class FolderOptionsView(View):
                 sync_data()
             elif "clean" in data.keys():
                 posts: BaseManager[Post] = Post.objects.filter(
-                    Q(image__isnull=True) | Q(image__link__isnull=True) | Q(image__link="")
+                    Q(image__isnull=True)
+                    | Q(image__link__isnull=True)
+                    | Q(image__link="")
                 )
                 posts.delete()
-                images_all = Image.objects.all()
+                images_all = Image.objects.all().order_by("-date_added")
                 print("Checking images, total:", images_all.count())
                 loop_count = 0
                 delete_images = 0
@@ -167,18 +172,18 @@ class FolderOptionsView(View):
                         print("no link")
                         continue
                     if not check_if_good_image(image.link):
-                        print("found")
+                        print("found", loop_count)
                         image_post = image.post_ref
                         image_post.delete()
                         delete_images += 1
                 print(loop_count, "images checked", delete_images, "deleted")
         return redirect("folder_view")
 
+
 class CleanView(View):
     """
     View to handle cleaning up the bad images and Posts.
     """
+
     def get(self, request, *args, **kwargs):
         return redirect("folder_view")
-
-

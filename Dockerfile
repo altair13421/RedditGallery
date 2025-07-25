@@ -1,22 +1,30 @@
-# Base image - official Python runtime
-FROM python:3.13-slim
+# Use Debian-based Python image (better compatibility than Alpine for SQLite)
+FROM python:3.13-bookworm
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONUNBUFFERED=1 \
+    SQLITE_DB_PATH=/app/data/db.sqlite3
 
-# Set work directory
-WORKDIR /code
+# Install system dependencies (for psycopg2, Pillow, etc.)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libsqlite3-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
+# Create and set workdir
+WORKDIR /app
+
+# Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
 
-# Copy project
+# Copy Django app
 COPY . .
 
-# Expose the port the app runs on
-EXPOSE 8800
+# Create persistent data dir
+RUN mkdir -p /app/data
 
-# Command to run the application
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8800"]
+# (Optional) Set non-root user for security
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
