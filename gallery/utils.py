@@ -11,7 +11,7 @@ from .models import IgnoredPosts, SubReddit, Post, Gallery, Image, Deleted
 from django.db.utils import OperationalError
 
 LIMIT = 1000
-workers = 5
+workers = 3
 reddit_link = "https://www.reddit.com"
 BASE_DIR = settings.BASE_DIR
 # check if download directory exists, if not create it
