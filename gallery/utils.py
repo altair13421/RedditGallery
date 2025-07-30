@@ -266,11 +266,14 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                                 ignored = IgnoredPosts.objects.create(
                                     reddit_id=post.reddit_id
                                 )
-                                break
+                                return
                             except OperationalError as e:
                                 time.sleep(2)
                                 k += 1
                                 continue
+                            except ValueError as e:
+                                print(f"ValueError: {e}")
+                                break
                         continue
                     k = 0
                     while k < 3:
@@ -321,9 +324,12 @@ def get_posts(subreddit: SubReddit):
 
             print("processed subreddit: ", subreddit.sub_reddit, time, type_of)
             posts = get_subreddit_info(subreddit.sub_reddit, time, type_of)
-            subreddit.display_name = posts[0]["title_sub"]
-            subreddit.name = posts[0]["display_name"]
-            subreddit.save()
+            try:
+                subreddit.display_name = posts[0]["title_sub"]
+                subreddit.name = posts[0]["display_name"]
+                subreddit.save()
+            except:
+                pass
             if posts:
                 write_posts(posts[1:], subreddit)
 

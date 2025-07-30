@@ -10,7 +10,7 @@ from django.http import HttpResponse
 
 from .forms import SettingsForm, SubRedditForm
 
-from .models import Image, MainSettings, Post, SubReddit
+from .models import IgnoredPosts, Image, MainSettings, Post, SubReddit
 from .utils import sync_data, sync_singular, check_if_good_image
 from django.db.models import Q
 
@@ -155,6 +155,12 @@ class FolderOptionsView(View):
         else:
             if "sync" in data.keys():
                 sync_data()
+            if "clear_ignored" in data.keys():
+                ignored = IgnoredPosts.objects.all()
+                ignored_count = IgnoredPosts.objects.count()
+                ignored.delete()
+                print("Cleared ignored posts:", ignored_count)
+                return redirect("folder_view")
             elif "clean" in data.keys():
                 posts: BaseManager[Post] = Post.objects.filter(
                     Q(image__isnull=True)
