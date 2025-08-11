@@ -251,6 +251,9 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                 time.sleep(2)
                 k += 1
                 continue
+            except Exception as e:
+                print(f"Exception: {e}, objects {Post.objects.filter(reddit_id=post_data[''])}")
+                return
         if created:
             post.subreddit = sub_reddit
             post.save()
@@ -353,7 +356,7 @@ def sync_data():
     Syncs data from the Reddit API to the local database.
     This function should be called periodically to keep the database updated.
     """
-    subreddits = SubReddit.objects.filter(is_active=True).order_by("sub_reddit")
+    subreddits = SubReddit.objects.filter(is_active=True)
     for subreddit in subreddits:
         get_posts(subreddit)
 

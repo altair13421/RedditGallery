@@ -10,7 +10,7 @@ from django.http import HttpResponse
 
 from .forms import SettingsForm, SubRedditForm
 
-from .models import IgnoredPosts, Image, MainSettings, Post, SubReddit
+from .models import IgnoredPosts, Image, MainSettings, Post, SubReddit, SavedImages
 from .utils import sync_data, sync_singular, check_if_good_image
 from django.db.models import Q
 
@@ -78,11 +78,31 @@ class ImageSaveView(View):
                 for chunk in response.iter_content(chunk_size=1000000):
                     ifile.write(chunk)
             print("saved at ", file_path)
+            saved, _ = SavedImages.objects.get_or_create(
+                image=image,
+                subreddit=image.subreddit,
+                reddit_id=image.reddit_id,
+                link=image.link,
+                downloaded_at=file_path,
+            )
+            print("Saved Image:", saved)
             return HttpResponse("YES")
         except Exception as e:
             print(e)
             print("couldn't save")
             return HttpResponse(e)
+
+class SavedImagesView(ListView):
+    model = SavedImages
+    template_name = "gallery.html"
+    context_object_name = "saved_images"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["total_images"] = SavedImages.objects.count()
+        context["subs"] = SubReddit.objects.all()
+        context["images"] = [image.image for image in SavedImages.objects.all().order_by("-pk")]
+        return context
 
 
 class FolderView(ListView):
@@ -168,6 +188,7 @@ class FolderOptionsView(View):
                     | Q(image__link="")
                 )
                 posts.delete()
+                # Multiple Objects of the same reddit_id can exist, so we need to delete them
                 images_all = Image.objects.all().order_by("-date_added")
                 print("Checking images, total:", images_all.count())
                 loop_count = 0
