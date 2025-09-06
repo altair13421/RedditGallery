@@ -1,13 +1,11 @@
-import os
 import time
 from django.conf import settings
 import praw
 import requests
-import json
 from bs4 import BeautifulSoup as bs
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from .models import IgnoredPosts, SubReddit, Post, Gallery, Image, Deleted
+from .models import IgnoredPosts, SubReddit, Post, Gallery, Image
 from django.db.utils import OperationalError
 
 LIMIT = 1000
@@ -97,11 +95,11 @@ def get_subreddit_info(
             try:
                 if post.url.__contains__("gallery"):
                     data["media_meta"] = get_gallery_images(post)
-            except Exception as E:
+            except Exception:
                 ...
             posts.append(data)
         return posts
-    except Exception as E:
+    except Exception:
         return None
 
 
@@ -222,7 +220,6 @@ def check_if_good_image(url):
         return False
 
 
-
 def write_posts(posts: list, sub_reddit: SubReddit):
     """
     Writes posts to the database.
@@ -252,7 +249,10 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                 k += 1
                 continue
             except Exception as e:
-                print(f"Exception: {e}, objects {Post.objects.filter(reddit_id=post_data[''])}")
+                print(
+                    f"Exception: {e}, objects {Post.objects.filter(reddit_id=post_data['id'])}"
+                )
+                Post.objects.filter(reddit_id=post_data["id"]).delete()
                 return
         if created:
             post.subreddit = sub_reddit
@@ -281,6 +281,11 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                     k = 0
                     while k < 3:
                         try:
+                            images = Image.objects.filter(
+                                reddit_id=item["reddit_id"]
+                            )
+                            if images.exists() and images.count() > 1:
+                                images.delete()
                             image, created = Image.objects.get_or_create(
                                 reddit_id=item["reddit_id"],
                                 defaults={
@@ -304,10 +309,13 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                                     image.gallery = gallery
                                     image.save()
                             break
-                        except OperationalError as e:
+                        except OperationalError:
                             time.sleep(2)
                             k += 1
                             continue
+                        except Exception as e:
+                            print(f"Exception: {e}, {item['print_url']}")
+                            break
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
         future_to_url = {
@@ -316,6 +324,8 @@ def write_posts(posts: list, sub_reddit: SubReddit):
         }
         for future in as_completed(future_to_url):
             future.result()
+    # for post in posts:
+        # create_posts(post, sub_reddit)
 
 
 def get_posts(subreddit: SubReddit):
@@ -356,9 +366,10 @@ def sync_data():
     Syncs data from the Reddit API to the local database.
     This function should be called periodically to keep the database updated.
     """
-    subreddits = SubReddit.objects.filter(is_active=True)
+    subreddits = SubReddit.objects.filter(is_active=True).order_by("-id")
     for subreddit in subreddits:
         get_posts(subreddit)
+
 
 def sync_singular(sub: SubReddit):
     """
