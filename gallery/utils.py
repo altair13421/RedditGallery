@@ -12,7 +12,6 @@ LIMIT = 1000
 workers = 3
 reddit_link = "https://www.reddit.com"
 BASE_DIR = settings.BASE_DIR
-# check if download directory exists, if not create it
 
 time_frames = [
     "day",
@@ -227,6 +226,66 @@ def write_posts(posts: list, sub_reddit: SubReddit):
     :param sub_reddit: SubReddit object to associate with the posts.
     """
 
+    def create_images(post_data, post, sub_reddit):
+        cleaned = clean_list(post_data)
+        if cleaned:
+            for item in cleaned:
+                if item["reddit_id"].__contains__("/"):
+                    item["reddit_id"] = item["reddit_id"].split("/")[-1]
+                if not check_if_good_image(item["url"]):
+                    k = 0
+                    while k < 3:
+                        try:
+                            ignored = IgnoredPosts.objects.create(
+                                reddit_id=post_data["id"]
+                            )
+                            return
+                        except OperationalError:
+                            time.sleep(2)
+                            k += 1
+                            continue
+                        except ValueError as e:
+                            print(f"ValueError: {e}")
+                            break
+                    continue
+                k = 0
+                while k < 3:
+                    try:
+                        images = Image.objects.filter(reddit_id=item["reddit_id"])
+                        if images.exists() and images.count() > 1:
+                            images.delete()
+                        image, created = Image.objects.get_or_create(
+                            reddit_id=item["reddit_id"],
+                            defaults={
+                                "link": item["url"],
+                                "subreddit": sub_reddit,
+                            },
+                        )
+                        if created:
+                            image.post_ref = post
+                            image.save()
+                            if item["gallery"]:
+                                gallery, _ = Gallery.objects.get_or_create(
+                                    reddit_id=item["reddit_id"],
+                                    defaults={
+                                        "link": item["url"],
+                                        "subreddit": sub_reddit,
+                                    },
+                                )
+                                gallery.post_ref = post
+                                gallery.save()
+                                image.gallery = gallery
+                                image.save()
+                        break
+                    except OperationalError:
+                        time.sleep(2)
+                        k += 1
+                        continue
+                    except Exception as e:
+                        print(f"Exception: {e}, {item['print_url']}")
+                        break
+
+
     def create_posts(post_data, sub_reddit):
         """Creates or updates a post in the database."""
         if IgnoredPosts.objects.filter(reddit_id=post_data["id"]).exists():
@@ -244,7 +303,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                     },
                 )
                 break
-            except OperationalError as e:
+            except OperationalError:
                 time.sleep(2)
                 k += 1
                 continue
@@ -257,65 +316,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
         if created:
             post.subreddit = sub_reddit
             post.save()
-            cleaned = clean_list(post_data)
-            if cleaned:
-                for item in cleaned:
-                    if item["reddit_id"].__contains__("/"):
-                        item["reddit_id"] = item["reddit_id"].split("/")[-1]
-                    if not check_if_good_image(item["url"]):
-                        k = 0
-                        while k < 3:
-                            try:
-                                ignored = IgnoredPosts.objects.create(
-                                    reddit_id=post.reddit_id
-                                )
-                                return
-                            except OperationalError as e:
-                                time.sleep(2)
-                                k += 1
-                                continue
-                            except ValueError as e:
-                                print(f"ValueError: {e}")
-                                break
-                        continue
-                    k = 0
-                    while k < 3:
-                        try:
-                            images = Image.objects.filter(
-                                reddit_id=item["reddit_id"]
-                            )
-                            if images.exists() and images.count() > 1:
-                                images.delete()
-                            image, created = Image.objects.get_or_create(
-                                reddit_id=item["reddit_id"],
-                                defaults={
-                                    "link": item["url"],
-                                    "subreddit": sub_reddit,
-                                },
-                            )
-                            if created:
-                                image.post_ref = post
-                                image.save()
-                                if item["gallery"]:
-                                    gallery, _ = Gallery.objects.get_or_create(
-                                        reddit_id=item["reddit_id"],
-                                        defaults={
-                                            "link": item["url"],
-                                            "subreddit": sub_reddit,
-                                        },
-                                    )
-                                    gallery.post_ref = post
-                                    gallery.save()
-                                    image.gallery = gallery
-                                    image.save()
-                            break
-                        except OperationalError:
-                            time.sleep(2)
-                            k += 1
-                            continue
-                        except Exception as e:
-                            print(f"Exception: {e}, {item['print_url']}")
-                            break
+            create_images(post_data, post, sub_reddit)
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
         future_to_url = {
@@ -325,7 +326,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
         for future in as_completed(future_to_url):
             future.result()
     # for post in posts:
-        # create_posts(post, sub_reddit)
+    # create_posts(post, sub_reddit)
 
 
 def get_posts(subreddit: SubReddit):
