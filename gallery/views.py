@@ -77,7 +77,6 @@ class ImageSaveView(View):
             with open(file_path, "wb") as ifile:
                 for chunk in response.iter_content(chunk_size=1000000):
                     ifile.write(chunk)
-            print("saved at ", file_path)
             saved, _ = SavedImages.objects.get_or_create(
                 image=image,
                 subreddit=image.subreddit,
