@@ -1,6 +1,6 @@
 import os
 from django.db.models.manager import BaseManager
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect
 from django.urls import reverse
 import requests
 
