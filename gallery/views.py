@@ -204,10 +204,9 @@ class FolderOptionsView(View):
                 posts.delete()
                 # Multiple Objects of the same reddit_id can exist, so we need to delete them
                 offset = 0
-                limit = 100
-                images_all = Image.objects.all().order_by("-date_added")[offset:limit]
-                print("Checking images, total:", limit - offset)
+                images_all = Image.objects.all().order_by("-date_added")[offset:]
                 image_count = images_all.count() - offset
+                print("Checking images, total:", image_count - offset)
                 count = 0
                 def clean_images(image: Image):
                     nonlocal count
