@@ -16,4 +16,3 @@ update-checker
 urllib3
 websocket-client
 icecream
-tqdm
