@@ -193,6 +193,8 @@ def check_if_good_image(url):
             # "Accept-Language": "en-US,en;q=0.5",
             "Connection": "keep-alive",
         }
+        if url.__contains__("imgur"):
+            return False,
         response = requests.head(
             url,
             timeout=10,
@@ -210,6 +212,10 @@ def check_if_good_image(url):
                 return False
         content_type = response.headers.get("Content-Type", "")
         return content_type.startswith("image/")
+    except requests.ConnectionError as E:
+        if E.__contains__("Max retries exceeded with url"):
+            return True
+        return False
     except requests.Timeout as E:
         print("Request timed out", E)
         return False

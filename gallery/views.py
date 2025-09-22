@@ -202,7 +202,7 @@ class FolderOptionsView(View):
 
                 def clean_images(image: Image):
                     if image.id % 50 == 0:
-                        ic(f"{image.id} / {images_all.count()}")
+                        print(images_all.count() - image.id, "/", images_all.count())
                     k = 0
                     while k < 3:
                         try:
@@ -224,6 +224,7 @@ class FolderOptionsView(View):
                                 ic(image_post)
                                 image_post.delete()
                                 return
+                            return
                         except OperationalError as E:
                             print("OperationalError, retrying:", E)
                             time.sleep(2)
@@ -241,7 +242,8 @@ class FolderOptionsView(View):
                             future.result()
                         except Exception as e:
                             print("Error cleaning image:", e)
-
+                # for image in images_all:
+                    # clean_images(image)
         return redirect("folder_view")
 
 
