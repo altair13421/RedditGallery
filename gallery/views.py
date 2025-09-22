@@ -225,13 +225,13 @@ class FolderOptionsView(View):
                                 and image.gallery.image_set.count() <= 1
                             ):
                                 remove_post = image.post_ref
-                                ic(remove_post)
+                                ic("Gallery with 1 or less images, removing:", image.gallery, remove_post)
                                 if remove_post:
                                     remove_post.delete()
                                 return
                             if not check_if_good_image(image.link):
                                 image_post = image.post_ref
-                                ic(image_post)
+                                ic("Bad Image", image_post)
                                 image_post.delete()
                                 return
                             return
