@@ -180,7 +180,7 @@ def clean_list(download_urls: list):
     return cleaned
 
 
-def check_if_good_image(url):
+def check_if_good_image(url, retry=0):
     """
     Checks if the URL is a valid image URL.
     :param url: The URL to check.
@@ -207,15 +207,14 @@ def check_if_good_image(url):
         if response.status_code == 307:
             if "Location" in response.headers:
                 new_url = urllib.parse.unquote(response.headers["Location"])
-                return check_if_good_image(new_url)
-            else:
+                if retry < 3:
+                    retry += 1
+                    return check_if_good_image(new_url, retry)
                 return False
         content_type = response.headers.get("Content-Type", "")
         return content_type.startswith("image/")
-    except requests.ConnectionError as E:
-        if E.__contains__("Max retries exceeded with url"):
-            return True
-        return False
+    except requests.ConnectionError:
+        return True
     except requests.Timeout as E:
         print("Request timed out", E)
         return False
