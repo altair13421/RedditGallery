@@ -1,4 +1,5 @@
 import os
+from django.db import OperationalError
 from django.db.models.manager import BaseManager
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -14,6 +15,11 @@ from .models import IgnoredPosts, Image, MainSettings, Post, SubReddit, SavedIma
 from .utils import sync_data, sync_singular, check_if_good_image
 from django.db.models import Q
 from icecream import ic
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
+
+workers = 5
+
 
 def get_settings() -> MainSettings:
     return MainSettings.get_or_create_settings()
@@ -91,6 +97,7 @@ class ImageSaveView(View):
             print("couldn't save")
             return HttpResponse(e)
 
+
 class SavedImagesView(ListView):
     model = SavedImages
     template_name = "gallery.html"
@@ -100,7 +107,9 @@ class SavedImagesView(ListView):
         context = super().get_context_data(**kwargs)
         context["total_images"] = SavedImages.objects.count()
         context["subs"] = SubReddit.objects.all()
-        context["images"] = [image.image for image in SavedImages.objects.all().order_by("-pk")]
+        context["images"] = [
+            image.image for image in SavedImages.objects.all().order_by("-pk")
+        ]
         return context
 
 
@@ -190,34 +199,50 @@ class FolderOptionsView(View):
                 # Multiple Objects of the same reddit_id can exist, so we need to delete them
                 images_all = Image.objects.all().order_by("-date_added")
                 print("Checking images, total:", images_all.count())
-                loop_count = 0
-                delete_images = 0
-                # bad_images = []
-                for image in images_all:
-                    loop_count += 1
-                    if not image.link or image.link == "":
-                        ic(image)
-                        image.post_ref.delete()
-                        delete_images += 1
-                        continue
-                    if image.gallery is not None and image.gallery.image_set.count() <= 1:
-                        remove_post = image.post_ref
-                        ic(remove_post)
-                        delete_images += image.gallery.image_set.count()
-                        if remove_post:
-                            remove_post.delete()
-                        continue
-                    if not check_if_good_image(image.link):
-                        image_post = image.post_ref
-                        ic(image_post)
-                        image_post.delete()
-                        delete_images += 1
-                    if loop_count % 50 == 0:
-                        print(f"{loop_count} / {images_all.count()} checked")
-                print(loop_count, "images checked", delete_images, "deleted")
-                # ic(bad_images)
-        return redirect("folder_view")
 
+                def clean_images(image: Image):
+                    if image.id % 50 == 0:
+                        ic(f"{image.id} / {images_all.count()}")
+                    k = 0
+                    while k < 3:
+                        try:
+                            if not image.link or image.link == "":
+                                ic(image)
+                                image.post_ref.delete()
+                                return
+                            if (
+                                image.gallery is not None
+                                and image.gallery.image_set.count() <= 1
+                            ):
+                                remove_post = image.post_ref
+                                ic(remove_post)
+                                if remove_post:
+                                    remove_post.delete()
+                                return
+                            if not check_if_good_image(image.link):
+                                image_post = image.post_ref
+                                ic(image_post)
+                                image_post.delete()
+                                return
+                        except OperationalError as E:
+                            print("OperationalError, retrying:", E)
+                            time.sleep(2)
+                            k += 1
+                        except Exception as e:
+                            print("Error checking image:", e)
+                            return
+
+                with ThreadPoolExecutor(max_workers=workers) as executor:
+                    futures = [
+                        executor.submit(clean_images, image) for image in images_all
+                    ]
+                    for future in as_completed(futures):
+                        try:
+                            future.result()
+                        except Exception as e:
+                            print("Error cleaning image:", e)
+
+        return redirect("folder_view")
 
 
 class CleanView(View):

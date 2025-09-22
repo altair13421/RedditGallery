@@ -9,6 +9,7 @@ from .models import IgnoredPosts, SubReddit, Post, Gallery, Image
 from django.db.utils import OperationalError
 from icecream import ic
 
+import urllib.parse
 
 LIMIT = 1000
 workers = 3
@@ -136,31 +137,7 @@ def clean_url(url: str, file_append: str = ""):
     elif url.__contains__(".mkv"):
         filename = url.split("/")[-1]
     elif url.__contains__("https://imgur.com/"):
-        if url.__contains__("/a/"):
-            try:
-                link_response = requests.get(url, timeout=10)
-                if link_response.status_code == 200:
-                    parser = bs(link_response.text, "html.parser")
-                    try:
-                        url = parser.find(
-                            "meta", {"property": "og:video:secure_url"}
-                        ).attrs["content"]
-                    except:
-                        url = parser.find("meta", {"property": "og:image"}).attrs[
-                            "content"
-                        ]
-                    filename = f"{url.split('/')[-1]}"
-                else:
-                    # print_error(
-                    #     f"Link Status: {link_response.status_code} || Response: {link_response} || {print_url}"
-                    # )
-                    ...
-            except:
-                pass
-        else:
-            url = url.replace("https://imgur.com/", "https://i.imgur.com/")
-            url = url + ".png"
-            filename = f"{url.split('/')[-1]}"
+        filename = None
     if filename is not None and filename.__contains__("?"):
         filename = filename.split("?")[0]
     if filename is not None and file_append != "":
@@ -210,14 +187,34 @@ def check_if_good_image(url):
     :return: True if the URL is a valid image, False otherwise.
     """
     try:
-        response = requests.head(url, allow_redirects=True, timeout=10)
-        if response.status_code != 200:
+        headers = {
+            "User-Agent": "PostmanRuntime/7.46.1",
+            # "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            # "Accept-Language": "en-US,en;q=0.5",
+            "Connection": "keep-alive",
+        }
+        response = requests.head(
+            url,
+            timeout=10,
+            headers=headers
+        )
+        # ic(response.headers)
+        if response.status_code not in [200, 307]:
+            ic(response.status_code, url, response.headers.get("Content-Type", ""))
             return False
+        if response.status_code == 307:
+            if "Location" in response.headers:
+                new_url = urllib.parse.unquote(response.headers["Location"])
+                return check_if_good_image(new_url)
+            else:
+                return False
         content_type = response.headers.get("Content-Type", "")
         return content_type.startswith("image/")
-    except requests.Timeout:
+    except requests.Timeout as E:
+        print("Request timed out", E)
         return False
-    except requests.RequestException:
+    except requests.RequestException as E:
+        print("Request Failed", E)
         return False
 
 
@@ -241,7 +238,6 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                             ignored = IgnoredPosts.objects.create(
                                 reddit_id=post_data["id"]
                             )
-                            print("Ignored post:", item["print_url"])
                             return
                         except OperationalError:
                             time.sleep(2)
@@ -290,7 +286,6 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                     except Exception as e:
                         print(f"Exception: {e}, {item['print_url']}")
                         break
-
 
     def create_posts(post_data, sub_reddit):
         """Creates or updates a post in the database."""
@@ -373,7 +368,7 @@ def sync_data():
     Syncs data from the Reddit API to the local database.
     This function should be called periodically to keep the database updated.
     """
-    subreddits = SubReddit.objects.filter(is_active=True).order_by("id")
+    subreddits = SubReddit.objects.filter(is_active=True).order_by("-id")
     for subreddit in subreddits:
         get_posts(subreddit)
 

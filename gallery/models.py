@@ -31,7 +31,7 @@ class Post(models.Model):
     date_added = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return super().__str__() + f" - {self.link} - {self.title}"
+        return f"{self.subreddit.name} - {self.link} - {self.title}"
 
     @property
     def check_deleted(self):
