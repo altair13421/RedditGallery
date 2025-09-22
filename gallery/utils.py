@@ -7,6 +7,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .models import IgnoredPosts, SubReddit, Post, Gallery, Image
 from django.db.utils import OperationalError
+from icecream import ic
+
 
 LIMIT = 1000
 workers = 3
@@ -17,7 +19,7 @@ time_frames = [
     "day",
     # "week",
     "month",
-    # "year",
+    # "year",;
     "all",
 ]
 type_ = [
@@ -239,6 +241,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                             ignored = IgnoredPosts.objects.create(
                                 reddit_id=post_data["id"]
                             )
+                            print("Ignored post:", item["print_url"])
                             return
                         except OperationalError:
                             time.sleep(2)
@@ -251,14 +254,17 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                 k = 0
                 while k < 3:
                     try:
-                        images = Image.objects.filter(reddit_id=item["reddit_id"])
+                        images = Image.objects.filter(
+                            reddit_id=item["reddit_id"],
+                            subreddit=sub_reddit,
+                        )
                         if images.exists() and images.count() > 1:
                             images.delete()
                         image, created = Image.objects.get_or_create(
                             reddit_id=item["reddit_id"],
+                            subreddit=sub_reddit,
                             defaults={
                                 "link": item["url"],
-                                "subreddit": sub_reddit,
                             },
                         )
                         if created:
@@ -267,9 +273,9 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                             if item["gallery"]:
                                 gallery, _ = Gallery.objects.get_or_create(
                                     reddit_id=item["reddit_id"],
+                                    subreddit=sub_reddit,
                                     defaults={
                                         "link": item["url"],
-                                        "subreddit": sub_reddit,
                                     },
                                 )
                                 gallery.post_ref = post
@@ -367,7 +373,7 @@ def sync_data():
     Syncs data from the Reddit API to the local database.
     This function should be called periodically to keep the database updated.
     """
-    subreddits = SubReddit.objects.filter(is_active=True).order_by("-id")
+    subreddits = SubReddit.objects.filter(is_active=True).order_by("id")
     for subreddit in subreddits:
         get_posts(subreddit)
 

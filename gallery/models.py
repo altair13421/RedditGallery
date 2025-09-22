@@ -15,6 +15,9 @@ class SubReddit(models.Model):
     is_active = models.BooleanField(default=True)
     excluded = models.BooleanField(default=False)
 
+    def __str__(self):
+        return f"{self.sub_reddit} - Active: {self.is_active} - Excluded: {self.excluded}"
+
 
 class Post(models.Model):
     subreddit = models.ForeignKey(
@@ -26,6 +29,9 @@ class Post(models.Model):
     content = models.TextField(blank=True)
     score = models.IntegerField(default=0)
     date_added = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return super().__str__() + f" - {self.link} - {self.title}"
 
     @property
     def check_deleted(self):
@@ -43,6 +49,8 @@ class Gallery(models.Model):
     reddit_id = models.CharField(max_length=255, blank=True)
     link = models.URLField(blank=True)
 
+    def __str__(self):
+        return super().__str__() + f" - {self.link}"
 
 class Image(models.Model):
     post_ref = models.ForeignKey(Post, on_delete=models.CASCADE, null=True, blank=True)
@@ -55,6 +63,9 @@ class Image(models.Model):
     reddit_id = models.CharField(max_length=255, blank=True)
     link = models.URLField(blank=True)
     date_added = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return super().__str__() + f" - {self.link} - {self.post_ref} - {self.subreddit}"
 
     @property
     def check_deleted(self):

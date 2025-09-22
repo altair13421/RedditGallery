@@ -13,7 +13,8 @@ from .forms import SettingsForm, SubRedditForm
 from .models import IgnoredPosts, Image, MainSettings, Post, SubReddit, SavedImages
 from .utils import sync_data, sync_singular, check_if_good_image
 from django.db.models import Q
-
+from tqdm import tqdm
+from icecream import ic
 
 def get_settings() -> MainSettings:
     return MainSettings.get_or_create_settings()
@@ -192,18 +193,30 @@ class FolderOptionsView(View):
                 print("Checking images, total:", images_all.count())
                 loop_count = 0
                 delete_images = 0
-                for image in images_all:
+                bad_images = []
+                for image in tqdm(images_all, total=float("inf")):
                     loop_count += 1
                     if not image.link or image.link == "":
-                        print("no link")
+                        bad_images.append(image)
+                        image.post_ref.delete()
+                        delete_images += 1
+                        continue
+                    if image.gallery is not None and image.gallery.image_set.count() <= 1:
+                        remove_post = image.post_ref
+                        bad_images.append(remove_post)
+                        delete_images += image.gallery.image_set.count()
+                        if remove_post:
+                            remove_post.delete()
                         continue
                     if not check_if_good_image(image.link):
-                        print("found", loop_count)
                         image_post = image.post_ref
+                        bad_images.append(image_post)
                         image_post.delete()
                         delete_images += 1
                 print(loop_count, "images checked", delete_images, "deleted")
+                ic(bad_images)
         return redirect("folder_view")
+
 
 
 class CleanView(View):
