@@ -116,30 +116,26 @@ def clean_url(url: str, file_append: str = ""):
         pass
     elif url.__contains__("twimg"):
         pass
-    elif url.__contains__(".png"):
+    elif (
+        ".gifv" in url
+        or ".mp4" in url
+        or ".webm" in url
+        or "png" in url
+        or ".jpg" in url
+        or "webp" in url
+        or "jpeg" in url
+    ):
         filename = url.split("/")[-1]
-    elif url.__contains__(".jpg"):
-        filename = url.split("/")[-1]
-    elif url.__contains__(".jpeg"):
-        filename = url.split("/")[-1]
-    elif url.__contains__(".webp"):
-        filename = url.split("/")[-1]
-    elif url.__contains__(".mp4"):
-        filename = url.split("/")[-1]
-    elif url.__contains__(".gif"):
-        if url.__contains__(".gifv"):
+        if filename.__contains__("?"):
+            filename = filename.split("?")[0]
+            url = url.split("?")[0]
+            if "https://preview.redd.it/" in url:
+                url = url.replace("https://preview.redd.it/", "https://i.redd.it/")
+        if filename.__contains__(".gifv"):
+            filename = filename.replace(".gifv", ".mp4")
             url = url.replace(".gifv", ".mp4")
-            filename = url.split("/")[-1]
-        else:
-            filename = url.split("/")[-1]
-    elif url.__contains__(".webm"):
-        filename = url.split("/")[-1]
-    elif url.__contains__(".mkv"):
-        filename = url.split("/")[-1]
-    elif url.__contains__("https://imgur.com/"):
+    elif url.__contains__("imgur.com"):
         filename = None
-    if filename is not None and filename.__contains__("?"):
-        filename = filename.split("?")[0]
     if filename is not None and file_append != "":
         filename = f"{file_append}_{filename}"
     return {
@@ -194,12 +190,8 @@ def check_if_good_image(url, retry=0):
             "Connection": "keep-alive",
         }
         if url.__contains__("imgur"):
-            return False,
-        response = requests.head(
-            url,
-            timeout=10,
-            headers=headers
-        )
+            return False
+        response = requests.head(url, timeout=10, headers=headers)
         # ic(response.headers)
         if response.status_code not in [200, 307]:
             ic(response.status_code, url, response.headers.get("Content-Type", ""))
@@ -232,6 +224,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
 
     def create_images(post_data, post, sub_reddit):
         cleaned = clean_list(post_data)
+        # ic(cleaned)
         if cleaned:
             for item in cleaned:
                 if item["reddit_id"].__contains__("/"):
@@ -264,9 +257,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                         image, created = Image.objects.get_or_create(
                             reddit_id=item["reddit_id"],
                             subreddit=sub_reddit,
-                            defaults={
-                                "link": item["url"],
-                            },
+                            link= item["url"],
                         )
                         if created:
                             image.post_ref = post
@@ -275,9 +266,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                                 gallery, _ = Gallery.objects.get_or_create(
                                     reddit_id=item["reddit_id"],
                                     subreddit=sub_reddit,
-                                    defaults={
-                                        "link": item["url"],
-                                    },
+                                    link=post_data["url"],
                                 )
                                 gallery.post_ref = post
                                 gallery.save()
@@ -299,6 +288,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
         k = 0
         while k < 3:
             try:
+                # ic(post_data) if "media_meta" in post_data.keys() else None
                 post, created = Post.objects.get_or_create(
                     reddit_id=post_data["id"],
                     defaults={

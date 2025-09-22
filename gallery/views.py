@@ -71,8 +71,14 @@ class ImageListView(ListView):
 class ImageSaveView(View):
     def get(self, request, pk):
         image = Image.objects.get(pk=pk)
+        headers = {
+            "User-Agent": "PostmanRuntime/7.46.1",
+            # "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            # "Accept-Language": "en-US,en;q=0.5",
+            "Connection": "keep-alive",
+        }
         try:
-            response = requests.get(image.link, stream=True)
+            response = requests.get(image.link, stream=True, headers=headers, timeout=20)
             response.raise_for_status()
             file_path = image.link.split("/")[-1]
             file_path = file_path.split("?")[0]
@@ -197,9 +203,11 @@ class FolderOptionsView(View):
                 )
                 posts.delete()
                 # Multiple Objects of the same reddit_id can exist, so we need to delete them
-                images_all = Image.objects.all().order_by("-date_added")
-                print("Checking images, total:", images_all.count())
-                image_count = images_all.count()
+                offset = 0
+                limit = 100
+                images_all = Image.objects.all().order_by("-date_added")[offset:limit]
+                print("Checking images, total:", limit - offset)
+                image_count = images_all.count() - offset
                 count = 0
                 def clean_images(image: Image):
                     nonlocal count
