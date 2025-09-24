@@ -11,6 +11,11 @@ RUN apt-get update && \
     libsqlite3-dev && \
     rm -rf /var/lib/apt/lists/*
 
+# Install system dependencies including PostgreSQL client
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create and set workdir
 WORKDIR /app
 

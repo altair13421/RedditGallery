@@ -82,6 +82,8 @@ class ImageSaveView(View):
             response.raise_for_status()
             file_path = image.link.split("/")[-1]
             file_path = file_path.split("?")[0]
+            if image.gallery is not None:
+                file_path = f"{image.gallery.reddit_id}_{file_path}"
             FOLDER = f"{get_settings().downloads_folder}/{image.subreddit.sub_reddit}"
             if not os.path.exists(FOLDER):
                 os.makedirs(FOLDER, exist_ok=True)
@@ -100,7 +102,7 @@ class ImageSaveView(View):
             return HttpResponse("YES")
         except Exception as e:
             print(e)
-            print("couldn't save")
+            print(f"couldn't save {image.link} | {image.subreddit}")
             return HttpResponse(e)
 
 
@@ -189,6 +191,15 @@ class FolderOptionsView(View):
         else:
             if "sync" in data.keys():
                 sync_data()
+            if "delete" in data.keys():
+                print("deleting posts")
+                i = 0
+                for post_ in Post.objects.all().order_by("-date_added")[:1000]:
+                    i += 1
+                    if i % 50 == 0:
+                        print("Deleted:", i, "/1000", post_)
+                    post_.delete()
+                return redirect("folder_view")
             if "clear_ignored" in data.keys():
                 ignored = IgnoredPosts.objects.all()
                 ignored_count = IgnoredPosts.objects.count()
@@ -204,7 +215,7 @@ class FolderOptionsView(View):
                 posts.delete()
                 # Multiple Objects of the same reddit_id can exist, so we need to delete them
                 offset = 0
-                images_all = Image.objects.all().order_by("-date_added")[offset:30000]
+                images_all = Image.objects.all().order_by("-date_added")[offset:10000]
                 image_count = images_all.count() - offset
                 print("Checking images, total:", image_count - offset)
                 count = 0
@@ -222,7 +233,7 @@ class FolderOptionsView(View):
                                 return
                             elif (
                                 image.gallery is not None
-                                and image.gallery.image_set.count() <= 2
+                                and image.gallery.image_set.count() <= 1
                             ):
                                 remove_post = image.post_ref
                                 ic("Gallery with 1 or less images, removing:", image.gallery, remove_post)

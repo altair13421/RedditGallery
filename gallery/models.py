@@ -50,7 +50,7 @@ class Gallery(models.Model):
     link = models.URLField(blank=True)
 
     def __str__(self):
-        return super().__str__() + f" - {self.link}"
+        return f"{self.subreddit} - {self.link}"
 
 class Image(models.Model):
     post_ref = models.ForeignKey(Post, on_delete=models.CASCADE, null=True, blank=True)

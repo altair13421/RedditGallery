@@ -101,6 +101,9 @@
                 <button type="submit" name="sync" class="btn btn-outline-success">
                     <i class="fas fa-sync-alt me-1"></i> Sync
                 </button>
+                <button type="submit" name="delete" class="btn btn-outline-warning">
+                    <i class="fas fa-sync-alt me-1"></i> Delete 1000
+                </button>
             </form>
         </div>
         {% endif %}
@@ -145,6 +148,7 @@
                                  data-score="{{ image.post_ref.score }}"
                                  data-url="{% url 'image_save' image.pk %}"
                                  data-src="{{ image.link }}"
+                                 data-gallery="{% if image.gallery.link %}{{ image.gallery }}{% else %}{% endif %}"
                                  style="height: 180px; object-fit: cover; cursor: zoom-in;">
                             <div class="position-absolute bottom-0 end-0 m-2">
                                 <button class="btn btn-sm btn-primary download-btn"
@@ -258,6 +262,11 @@ document.querySelectorAll('.gallery-image').forEach(img => {
                     <div class="d-flex align-items-center">
                         <i class="fas fa-link me-2 text-muted"></i>
                         <a href="${this.src}" target="_blank" class="text-truncate">${this.src}</a>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-link me-2 text-muted">${this.dataset.gallery || this.gallery || ''}</i>
                     </div>
                 </div>
             </div>

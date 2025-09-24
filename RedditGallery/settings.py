@@ -86,10 +86,39 @@ WSGI_APPLICATION = 'RedditGallery.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.environ.get('POSTGRES_DB', 'reddit_app'),
+#         'USER': os.environ.get('POSTGRES_USER', 'reddit_user'),
+#         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'reddit_password'),
+#         'HOST': os.environ.get('POSTGRES_HOST', 'db'),  # 'db' is the service name
+#         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+#         'CONN_MAX_AGE': 300,  # Connection pooling
+#     }
+# }
+
+# Optional: For even better performance with connection pooling
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'dj_db_conn_pool.backends.postgresql',
+        'NAME': os.environ.get('POSTGRES_DB', 'reddit_app'),
+        'USER': os.environ.get('POSTGRES_USER', 'reddit_user'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'reddit_password'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'db'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        'POOL_OPTIONS': {
+            'POOL_SIZE': 20,
+            'MAX_OVERFLOW': 30,
+            'TIMEOUT': 30,
+            'RECYCLE': 3600,
+        }
     }
 }
 
