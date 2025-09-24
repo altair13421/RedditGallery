@@ -113,6 +113,7 @@ DATABASES = {
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'reddit_password'),
         'HOST': os.environ.get('POSTGRES_HOST', 'db'),
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        'CONN_MAX_AGE': 300,  # Persistent connections
         'POOL_OPTIONS': {
             'POOL_SIZE': 20,
             'MAX_OVERFLOW': 30,

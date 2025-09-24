@@ -2,7 +2,6 @@ import time
 from django.conf import settings
 import praw
 import requests
-from bs4 import BeautifulSoup as bs
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.db import transaction
 from .models import IgnoredPosts, SubReddit, Post, Gallery, Image
@@ -12,7 +11,7 @@ from icecream import ic
 import urllib.parse
 
 LIMIT = 1000
-workers = 10
+workers = 5
 reddit_link = "https://www.reddit.com"
 BASE_DIR = settings.BASE_DIR
 
