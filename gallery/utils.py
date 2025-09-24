@@ -4,7 +4,7 @@ import praw
 import requests
 from bs4 import BeautifulSoup as bs
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
+from django.db import transaction
 from .models import IgnoredPosts, SubReddit, Post, Gallery, Image
 from django.db.utils import OperationalError
 from icecream import ic
@@ -257,7 +257,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                         image, created = Image.objects.get_or_create(
                             reddit_id=item["reddit_id"],
                             subreddit=sub_reddit,
-                            link= item["url"],
+                            link=item["url"],
                         )
                         if created:
                             image.post_ref = post
@@ -325,6 +325,251 @@ def write_posts(posts: list, sub_reddit: SubReddit):
     # create_posts(post, sub_reddit)
 
 
+###################### BULKING AND SOMETHING ######################
+
+
+def write_posts_bulk(posts: list, sub_reddit: SubReddit):
+    """
+    Optimized bulk version using transaction.atomic and batch processing.
+    """
+
+    @transaction.atomic
+    def process_batch(batch_posts, sub_reddit):
+        """Process a batch of posts atomically"""
+        if not batch_posts:
+            return
+
+        # batch_size = len(batch_posts)
+        # print(f"Processing batch of {batch_size} posts...")
+
+        # Step 1: Filter out ignored posts and existing posts
+        post_ids = [post["id"] for post in batch_posts]
+
+        # Check ignored posts
+        ignored_ids = set(
+            IgnoredPosts.objects.filter(reddit_id__in=post_ids).values_list(
+                "reddit_id", flat=True
+            )
+        )
+
+        # Check existing posts
+        existing_posts = Post.objects.filter(reddit_id__in=post_ids)
+        existing_post_map = {p.reddit_id: p for p in existing_posts}
+
+        # Filter valid posts (not ignored and not existing)
+        valid_posts = [
+            p
+            for p in batch_posts
+            if p["id"] not in ignored_ids and p["id"] not in existing_post_map
+        ]
+
+        if not valid_posts:
+            # print("No new posts to create in this batch")
+            return
+
+        # Step 2: Bulk create posts
+        posts_to_create = []
+        for post_data in valid_posts:
+            posts_to_create.append(
+                Post(
+                    reddit_id=post_data["id"],
+                    title=post_data["title"][:500],  # Limit length if needed
+                    content=post_data["content"],
+                    link=post_data["perma_url"],
+                    score=post_data["score"],
+                    subreddit=sub_reddit,
+                )
+            )
+
+        # Bulk create posts
+        created_posts = Post.objects.bulk_create(posts_to_create)
+        created_post_map = {p.reddit_id: p for p in created_posts}
+        # print(f"Created {len(created_posts)} new posts")
+
+        # Step 3: Process images for newly created posts
+        images_to_create = []
+        galleries_to_create = []
+        gallery_image_map = {}  # Track which images belong to which galleries
+
+        for post_data in valid_posts:
+            if post_data["id"] in created_post_map:
+                post = created_post_map[post_data["id"]]
+                cleaned_images = clean_list(post_data)
+
+                if cleaned_images:
+                    for item in cleaned_images:
+                        # Clean reddit_id
+                        reddit_id = item["reddit_id"]
+                        if "/" in reddit_id:
+                            reddit_id = reddit_id.split("/")[-1]
+
+                        # Skip bad images
+                        if not check_if_good_image(item["url"]):
+                            # Mark post as ignored
+                            IgnoredPosts.objects.get_or_create(
+                                reddit_id=post_data["id"]
+                            )
+                            continue
+
+                        # Create image
+                        images_to_create.append(
+                            Image(
+                                reddit_id=reddit_id,
+                                subreddit=sub_reddit,
+                                link=item["url"],
+                                post_ref=post,
+                            )
+                        )
+
+                        # Handle galleries
+                        if item.get("gallery", False):
+                            galleries_to_create.append(
+                                Gallery(
+                                    reddit_id=reddit_id,
+                                    subreddit=sub_reddit,
+                                    link=post_data["url"],
+                                    post_ref=post,
+                                )
+                            )
+                            # Track that this image belongs to a gallery
+                            gallery_image_map[reddit_id] = post_data["id"]
+
+        # Step 4: Bulk create images and galleries
+        if images_to_create:
+            created_images = Image.objects.bulk_create(
+                images_to_create, ignore_conflicts=True  # Skip duplicates
+            )
+            # print(f"Created {len(images_to_create)} images")
+
+        if galleries_to_create:
+            created_galleries = Gallery.objects.bulk_create(
+                galleries_to_create, ignore_conflicts=True
+            )
+            # print(f"Created {len(galleries_to_create)} galleries")
+
+            # Associate images with their galleries (this requires individual updates)
+            gallery_map = {g.reddit_id: g for g in created_galleries}
+            for image in created_images:
+                if image.reddit_id in gallery_map:
+                    image.gallery = gallery_map[image.reddit_id]
+
+            # Bulk update the gallery associations
+            Image.objects.bulk_update(created_images, ["gallery"])
+
+    def safe_process_batch(batch, sub_reddit, max_retries=3):
+        """Wrapper with retry logic for database locks"""
+        for attempt in range(max_retries):
+            try:
+                process_batch(batch, sub_reddit)
+                break  # Success
+            except OperationalError as e:
+                if "database is locked" in str(e) and attempt < max_retries - 1:
+                    wait_time = 2 * (attempt + 1)
+                    print(f"Database locked, retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    print(f"Failed after {max_retries} attempts: {e}")
+                    raise
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                raise
+
+    # Step 5: Process all posts in manageable batches
+    batch_size = 20  # Adjust based on your system's capacity
+    total_posts = len(posts)
+
+    # print(f"Starting bulk processing of {total_posts} posts...")
+
+    for i in range(0, total_posts, batch_size):
+        batch = posts[i : i + batch_size]
+        safe_process_batch(batch, sub_reddit)
+
+        # progress = min(i + batch_size, total_posts)
+        # print(f"Progress: {progress}/{total_posts} posts processed")
+
+    print(f"Bulk processing completed! {total_posts} posts processed.")
+
+
+# Alternative: Simpler version that's easier to debug
+def write_posts_simple_bulk(posts: list, sub_reddit: SubReddit):
+    """
+    Simpler bulk version that processes one post at a time but uses atomic transactions.
+    """
+
+    @transaction.atomic
+    def process_single_post(post_data, sub_reddit):
+        """Process a single post atomically"""
+        # Check if post should be ignored
+        if IgnoredPosts.objects.filter(reddit_id=post_data["id"]).exists():
+            return False
+
+        # Check if post already exists
+        if Post.objects.filter(reddit_id=post_data["id"]).exists():
+            return False
+
+        # Create the post
+        post = Post.objects.create(
+            reddit_id=post_data["id"],
+            title=post_data["title"],
+            content=post_data["content"],
+            link=post_data["perma_url"],
+            score=post_data["score"],
+            subreddit=sub_reddit,
+        )
+
+        # Process images
+        cleaned_images = clean_list(post_data)
+        if cleaned_images:
+            for item in cleaned_images:
+                reddit_id = item["reddit_id"]
+                if "/" in reddit_id:
+                    reddit_id = reddit_id.split("/")[-1]
+
+                if not check_if_good_image(item["url"]):
+                    IgnoredPosts.objects.get_or_create(reddit_id=post_data["id"])
+                    continue
+
+                # Create image
+                image = Image.objects.create(
+                    reddit_id=reddit_id,
+                    subreddit=sub_reddit,
+                    link=item["url"],
+                    post_ref=post,
+                )
+
+                # Create gallery if needed
+                if item.get("gallery", False):
+                    gallery = Gallery.objects.create(
+                        reddit_id=reddit_id,
+                        subreddit=sub_reddit,
+                        link=post_data["url"],
+                        post_ref=post,
+                    )
+                    image.gallery = gallery
+                    image.save()
+
+        return True
+
+    # Process posts with limited concurrency
+    successful = 0
+    for i, post_data in enumerate(posts):
+        try:
+            if process_single_post(post_data, sub_reddit):
+                successful += 1
+        except Exception as e:
+            print(f"Error processing post {post_data['id']}: {e}")
+
+        # Progress tracking
+        if (i + 1) % 10 == 0:
+            print(f"Processed {i + 1}/{len(posts)} posts, {successful} successful")
+
+    print(f"Completed: {successful}/{len(posts)} posts processed successfully")
+
+
+######################## END BULKING #########################
+
+
 def get_posts(subreddit: SubReddit):
     for time in time_frames:
         for type_of in type_:
@@ -341,7 +586,7 @@ def get_posts(subreddit: SubReddit):
             except:
                 pass
             if posts:
-                write_posts(posts[1:], subreddit)
+                write_posts_bulk(posts[1:], subreddit)
 
 
 def sync_data_with_json(json_data):

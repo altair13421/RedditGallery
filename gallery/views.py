@@ -18,7 +18,7 @@ from icecream import ic
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 
-workers = 5
+workers = 10
 
 
 def get_settings() -> MainSettings:
@@ -204,7 +204,7 @@ class FolderOptionsView(View):
                 posts.delete()
                 # Multiple Objects of the same reddit_id can exist, so we need to delete them
                 offset = 0
-                images_all = Image.objects.all().order_by("-date_added")[offset:]
+                images_all = Image.objects.all().order_by("-date_added")[offset:30000]
                 image_count = images_all.count() - offset
                 print("Checking images, total:", image_count - offset)
                 count = 0
@@ -220,16 +220,16 @@ class FolderOptionsView(View):
                                 ic(image)
                                 image.post_ref.delete()
                                 return
-                            if (
+                            elif (
                                 image.gallery is not None
-                                and image.gallery.image_set.count() <= 1
+                                and image.gallery.image_set.count() <= 2
                             ):
                                 remove_post = image.post_ref
                                 ic("Gallery with 1 or less images, removing:", image.gallery, remove_post)
                                 if remove_post:
                                     remove_post.delete()
                                 return
-                            if not check_if_good_image(image.link):
+                            elif not check_if_good_image(image.link):
                                 image_post = image.post_ref
                                 ic("Bad Image", image_post)
                                 image_post.delete()
