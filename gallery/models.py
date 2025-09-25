@@ -175,7 +175,7 @@ class MainSettings(models.Model):
             if os.name in ["nt", "NT"]:
                 default_settings.downloads_folder = "C:\\Downloads"
             else:
-                default_settings.downloads_folder = "$HOME/Downloads"
+                default_settings.downloads_folder = "/downloads"
             default_settings.save()
             return default_settings
 

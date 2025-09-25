@@ -234,8 +234,6 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                         ignored = IgnoredPosts.objects.create(
                             reddit_id=post_data["id"]
                         )
-                        if item == cleaned[-1]:
-                            return
                     except ValueError as e:
                         print(f"ValueError: {e}")
                 try:
