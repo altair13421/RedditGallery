@@ -4,6 +4,10 @@ from django.conf import settings
 
 # Create your models here.
 
+from django.db import connection
+
+def reset_connection_pool():
+    connection.close()
 
 class SubReddit(models.Model):
     name = models.CharField(max_length=511, blank=True)

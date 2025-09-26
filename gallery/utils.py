@@ -4,7 +4,7 @@ import praw
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.db import transaction
-from .models import IgnoredPosts, SubReddit, Post, Gallery, Image
+from .models import IgnoredPosts, SubReddit, Post, Gallery, Image, reset_connection_pool
 from django.db.utils import OperationalError
 from icecream import ic
 
@@ -449,6 +449,7 @@ def get_posts(subreddit: SubReddit):
                 pass
             if posts:
                 write_posts(posts[1:], subreddit)
+                reset_connection_pool()
 
 
 def sync_data_with_json(json_data):
