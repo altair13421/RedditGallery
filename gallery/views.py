@@ -11,7 +11,7 @@ from django.http import HttpResponse
 
 from .forms import SettingsForm, SubRedditForm
 
-from .models import IgnoredPosts, Image, MainSettings, Post, SubReddit, SavedImages
+from .models import IgnoredPosts, Image, MainSettings, Post, SubReddit, SavedImages, Gallery
 from .utils import sync_data, sync_singular, check_if_good_image
 from django.db.models import Q
 from icecream import ic
@@ -185,6 +185,11 @@ class FolderOptionsView(View):
             elif "delete" in data.keys():
                 sub_reddit.delete()
                 return redirect("folder_view")
+            elif "clean" in data.keys():
+                posts = Post.objects.filter(subreddit=sub_reddit).delete()
+                images = Image.objects.filter(subreddit=sub_reddit).delete()
+                gallerys = Gallery.objects.filter(subreddit=sub_reddit).delete()
+                print(f"Deleted {posts[0]} posts, {images[0]} images, {gallerys[0]} gallerys")
             elif "sync" in data.keys():
                 sync_singular(sub_reddit)
             return redirect("folder_view_detail", pk=pk)
@@ -215,10 +220,14 @@ class FolderOptionsView(View):
                 posts.delete()
                 # Multiple Objects of the same reddit_id can exist, so we need to delete them
                 offset = 0
-                images_all = Image.objects.all().order_by("-date_added")[offset:10000]
+                images_all = Image.objects.all().order_by("-date_added")[offset:]
                 image_count = images_all.count() - offset
                 print("Checking images, total:", image_count - offset)
                 count = 0
+                # galleries = Gallery.objects.filter(id__in=[gallery.id for gallery in Gallery.objects.all() if gallery.image_set.count() == 2])
+                # post_ref = Post.objects.filter(gallery__in=galleries)
+                # post_ref.delete()
+                # return redirect("folder_view")
                 def clean_images(image: Image):
                     nonlocal count
                     count += 1

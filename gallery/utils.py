@@ -239,6 +239,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                 try:
                     images = Image.objects.filter(
                         reddit_id=item["reddit_id"],
+                        link=item["url"],
                         subreddit=sub_reddit,
                     )
                     if images.exists() and images.count() > 1:
@@ -247,14 +248,14 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                         reddit_id=item["reddit_id"],
                         subreddit=sub_reddit,
                         link=item["url"],
-                        defaults={"post_ref": post},
+                        post_ref=post,
                     )
                     if created and item["gallery"]:
                         gallery, _ = Gallery.objects.get_or_create(
                             reddit_id=item["reddit_id"],
                             subreddit=sub_reddit,
                             link=post_data["url"],
-                            defaults={"post_ref": post},
+                            post_ref=post,
                         )
                         image.gallery = gallery
                         image.save()
