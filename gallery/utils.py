@@ -111,9 +111,7 @@ def clean_url(url: str, file_append: str = ""):
         print_url = url
     # print_log(f'{print_url}', end=" || ")
     filename = None
-    if url.__contains__("pictures.hentai-foundry.com"):
-        pass
-    elif url.__contains__("twimg"):
+    if "pictures.hentai-foundry.com" in url or "twimg" in url or "wixmp" in url or "imgur" in url:
         pass
     elif (
         ".gifv" in url
@@ -121,8 +119,8 @@ def clean_url(url: str, file_append: str = ""):
         or ".webm" in url
         or "png" in url
         or ".jpg" in url
-        or "webp" in url
-        or "jpeg" in url
+        or ".webp" in url
+        or ".jpeg" in url
     ):
         filename = url.split("/")[-1]
         if filename.__contains__("?"):
@@ -133,8 +131,6 @@ def clean_url(url: str, file_append: str = ""):
         if filename.__contains__(".gifv"):
             filename = filename.replace(".gifv", ".mp4")
             url = url.replace(".gifv", ".mp4")
-    elif url.__contains__("imgur.com"):
-        filename = None
     if filename is not None and file_append != "":
         filename = f"{file_append}_{filename}"
     return {
@@ -175,12 +171,14 @@ def clean_list(download_urls: list):
     return cleaned
 
 
-def check_if_good_image(url, retry=0):
+def check_if_good_image(url, retry=0, filename=""):
     """
     Checks if the URL is a valid image URL.
     :param url: The URL to check.
     :return: True if the URL is a valid image, False otherwise.
     """
+    if filename is None or filename == "":
+        return False
     try:
         headers = {
             "User-Agent": "PostmanRuntime/7.46.1",
@@ -229,7 +227,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
             for item in cleaned:
                 if item["reddit_id"].__contains__("/"):
                     item["reddit_id"] = item["reddit_id"].split("/")[-1]
-                if not check_if_good_image(item["url"]):
+                if not check_if_good_image(item["url"], filename=item["filename"]):
                     try:
                         ignored = IgnoredPosts.objects.create(
                             reddit_id=post_data["id"]
@@ -244,21 +242,22 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                     )
                     if images.exists() and images.count() > 1:
                         images.delete()
-                    image, created = Image.objects.get_or_create(
-                        reddit_id=item["reddit_id"],
-                        subreddit=sub_reddit,
-                        link=item["url"],
-                        post_ref=post,
-                    )
-                    if created and item["gallery"]:
-                        gallery, _ = Gallery.objects.get_or_create(
+                    with transaction.atomic():
+                        image, created = Image.objects.get_or_create(
                             reddit_id=item["reddit_id"],
                             subreddit=sub_reddit,
-                            link=post_data["url"],
+                            link=item["url"],
                             post_ref=post,
                         )
-                        image.gallery = gallery
-                        image.save()
+                        if created and item["gallery"]:
+                            gallery, _ = Gallery.objects.get_or_create(
+                                reddit_id=item["reddit_id"],
+                                subreddit=sub_reddit,
+                                link=post_data["url"],
+                                post_ref=post,
+                            )
+                            image.gallery = gallery
+                            image.save()
                 except Exception as e:
                     print(f"Exception: {e}, {item['print_url']}")
                     break

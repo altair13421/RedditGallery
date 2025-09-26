@@ -218,6 +218,11 @@ class FolderOptionsView(View):
                     | Q(image__link="")
                 )
                 posts.delete()
+                # Imgur Images, if Any, Cause They Always 404
+                imgur_images = Image.objects.filter(link__contains="imgur")
+                imgur_images_count = imgur_images.count()
+                imgur_images.delete()
+                print("Deleted Imgur images:", imgur_images_count)
                 # Multiple Objects of the same reddit_id can exist, so we need to delete them
                 offset = 0
                 images_all = Image.objects.all().order_by("-date_added")[offset:]
