@@ -50,7 +50,7 @@ class ImageListView(ListView):
     model = Image
     template_name = "gallery.html"
     context_object_name = "images"
-    paginate_by = 1000  # Optional pagination
+    paginate_by = 2000  # Optional pagination
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -173,15 +173,18 @@ class FolderOptionsView(View):
         if pk != 0:
             sub_reddit = SubReddit.objects.get(pk=pk)
             if "excluded" in data.keys():
+                main_settings = MainSettings.get_or_create_settings()
                 if sub_reddit.excluded:
                     sub_reddit.excluded = False
+                    main_settings = main_settings.excluded_subs.replace(f"{sub_reddit.sub_reddit},", "")
+                    main_settings.save()
                 else:
                     sub_reddit.excluded = True
+                    if sub_reddit.sub_reddit not in main_settings.excluded_subs:
+                        main_settings.exluded_subreddits += f"{sub_reddit.sub_reddit},"
+                        main_settings.save()
                 sub_reddit.save()
-                main_settings = MainSettings.get_or_create_settings()
-                if sub_reddit.sub_reddit not in main_settings.excluded_subs:
-                    main_settings.exluded_subreddits += f"{sub_reddit.sub_reddit},"
-                    main_settings.save()
+
             elif "delete" in data.keys():
                 sub_reddit.delete()
                 return redirect("folder_view")
