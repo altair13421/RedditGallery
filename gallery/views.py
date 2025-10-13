@@ -176,7 +176,7 @@ class FolderOptionsView(View):
                 main_settings = MainSettings.get_or_create_settings()
                 if sub_reddit.excluded:
                     sub_reddit.excluded = False
-                    main_settings = main_settings.excluded_subs.replace(f"{sub_reddit.sub_reddit},", "")
+                    main_settings.exluded_subreddits = main_settings.exluded_subreddits.replace(f"{sub_reddit.sub_reddit},", "")
                     main_settings.save()
                 else:
                     sub_reddit.excluded = True
