@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-e72h8dr_-!^nu7c9gng)*j1zspl(y(dx1qs#v9tu98*^98#^z5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 REDDIT = "https://www.reddit.com/"
 import dotenv, os

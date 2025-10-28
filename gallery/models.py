@@ -95,6 +95,58 @@ class Deleted(models.Model):
     def __str__(self):
         return f"{self.reddit_id} - {self.title}"
 
+class Category(models.Model):
+    name = models.CharField(max_length=255, blank=True, default="Undefined")
+    description = models.TextField(blank=True)
+    subreddits = models.ManyToManyField(SubReddit, verbose_name="subreddits", blank=True, related_name="categories")
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def subs(self):
+        return self.subreddits.all()
+
+    @classmethod
+    def get_all_categories(cls):
+        return cls.objects.all()
+
+    @classmethod
+    def get_category_names(cls):
+        return [(category.id, category.name) for category in cls.objects.all()]
+
+    @classmethod
+    def get_category_by_name(cls, name):
+        try:
+            return cls.objects.get(name=name)
+        except cls.DoesNotExist:
+            return None
+
+    @classmethod
+    def add_subreddit_to_category(cls, category_name, subreddit):
+        category = cls.get_category_by_name(category_name)
+        if category:
+            category.subs.add(subreddit)
+            category.save()
+            return True
+        return False
+
+    @classmethod
+    def remove_subreddit_from_category(cls, category_name, subreddit):
+        category = cls.get_category_by_name(category_name)
+        if category:
+            category.subs.remove(subreddit)
+            category.save()
+            return True
+        return False
+
+    @classmethod
+    def delete_category(cls, name):
+        category = cls.get_category_by_name(name)
+        if category:
+            category.delete()
+            return True
+        return False
 
 class Settings(models.Model):
     client_id = models.CharField(max_length=255, blank=True)

@@ -1,19 +1,37 @@
 import os
-from django.db import OperationalError
-from django.db.models.manager import BaseManager
-from django.shortcuts import redirect
-from django.urls import reverse
 import requests
 
-# Create your views here.
-from django.views.generic import ListView, View, DetailView, CreateView
-from django.http import HttpResponse
-
-from .forms import SettingsForm, SubRedditForm
-
-from .models import IgnoredPosts, Image, MainSettings, Post, SubReddit, SavedImages, Gallery
-from .utils import sync_data, sync_singular, check_if_good_image
+from django.db import OperationalError, transaction
+from django.db.models.manager import BaseManager
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.db.models import Q
+
+# Create your views here.
+from django.views.generic import (
+    ListView,
+    View,
+    DetailView,
+    CreateView,
+)
+from django.http import (
+    HttpResponse,
+    JsonResponse,
+)
+
+from .forms import SettingsForm, SubRedditForm, SubSettingsForm
+
+from .models import (
+    Category,
+    IgnoredPosts,
+    Image,
+    MainSettings,
+    Post,
+    SubReddit,
+    SavedImages,
+    Gallery,
+)
+from .utils import sync_data, sync_singular, check_if_good_image
 from icecream import ic
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
@@ -78,7 +96,9 @@ class ImageSaveView(View):
             "Connection": "keep-alive",
         }
         try:
-            response = requests.get(image.link, stream=True, headers=headers, timeout=20)
+            response = requests.get(
+                image.link, stream=True, headers=headers, timeout=20
+            )
             response.raise_for_status()
             file_path = image.link.split("/")[-1]
             file_path = file_path.split("?")[0]
@@ -130,6 +150,7 @@ class FolderView(ListView):
         context = super().get_context_data(**kwargs)
         context["total_images"] = Image.objects.count()
         context["form"] = SubRedditForm()
+        context["categories"] = Category.objects.all()
         return context
 
     def get_queryset(self):
@@ -158,10 +179,6 @@ class MainSettingsView(CreateView):
         self.initial = self.object.get_initials()
         super().__init__(**kwargs)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        return context
-
     def get_success_url(self):
         return reverse("settings")  # Redirect to the settings page after saving
 
@@ -176,7 +193,11 @@ class FolderOptionsView(View):
                 main_settings = MainSettings.get_or_create_settings()
                 if sub_reddit.excluded:
                     sub_reddit.excluded = False
-                    main_settings.exluded_subreddits = main_settings.exluded_subreddits.replace(f"{sub_reddit.sub_reddit},", "")
+                    main_settings.exluded_subreddits = (
+                        main_settings.exluded_subreddits.replace(
+                            f"{sub_reddit.sub_reddit},", ""
+                        )
+                    )
                     main_settings.save()
                 else:
                     sub_reddit.excluded = True
@@ -192,7 +213,9 @@ class FolderOptionsView(View):
                 posts = Post.objects.filter(subreddit=sub_reddit).delete()
                 images = Image.objects.filter(subreddit=sub_reddit).delete()
                 gallerys = Gallery.objects.filter(subreddit=sub_reddit).delete()
-                print(f"Deleted {posts[0]} posts, {images[0]} images, {gallerys[0]} gallerys")
+                print(
+                    f"Deleted {posts[0]} posts, {images[0]} images, {gallerys[0]} gallerys"
+                )
             elif "sync" in data.keys():
                 sync_singular(sub_reddit)
             return redirect("folder_view_detail", pk=pk)
@@ -232,6 +255,7 @@ class FolderOptionsView(View):
                 image_count = images_all.count() - offset
                 print("Checking images, total:", image_count - offset)
                 count = 0
+
                 # galleries = Gallery.objects.filter(id__in=[gallery.id for gallery in Gallery.objects.all() if gallery.image_set.count() == 2])
                 # post_ref = Post.objects.filter(gallery__in=galleries)
                 # post_ref.delete()
@@ -253,7 +277,11 @@ class FolderOptionsView(View):
                                 and image.gallery.image_set.count() <= 1
                             ):
                                 remove_post = image.post_ref
-                                ic("Gallery with 1 or less images, removing:", image.gallery, remove_post)
+                                ic(
+                                    "Gallery with 1 or less images, removing:",
+                                    image.gallery,
+                                    remove_post,
+                                )
                                 if remove_post:
                                     remove_post.delete()
                                 return
@@ -281,7 +309,7 @@ class FolderOptionsView(View):
                         except Exception as e:
                             print("Error cleaning image:", e)
                 # for image in images_all:
-                    # clean_images(image)
+                # clean_images(image)
         return redirect("folder_view")
 
 
@@ -292,3 +320,93 @@ class CleanView(View):
 
     def get(self, request, *args, **kwargs):
         return redirect("folder_view")
+
+
+class FolderFormAjaxView(View):
+    """AJAX view to load form"""
+
+    def get(self, request, folder_id):
+        folder: SubReddit = get_object_or_404(SubReddit, pk=folder_id)
+
+        # Pre-populate form with folder data
+        initial_data = {
+            "folder_id": folder.id,
+            "sub_display_name": folder.sub_reddit,
+            "excluded": folder.excluded,
+            "sub": folder,
+            "categories": folder.categories.all(),
+        }
+
+        form = SubSettingsForm(initial=initial_data)
+
+        return render(request, "folder_settings.html", {"form": form, "folder": folder})
+
+
+class FolderSettingsFormView(View):
+    """Handle form submission"""
+
+    def post(self, request):
+        form = SubSettingsForm(request.POST)
+
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    folder_id = form.cleaned_data["folder_id"]
+                    folder: SubReddit = get_object_or_404(SubReddit, pk=folder_id)
+                    # Get selected categories
+                    selected_categories = form.cleaned_data["categories"]
+
+                    if selected_categories.count() != 0:
+                        folder.categories.set(selected_categories)
+                        folder.save()
+
+                    # Handle new category creation
+                    new_category_name = form.cleaned_data["new_category"]
+                    if new_category_name:
+                        new_category, created = Category.objects.get_or_create(
+                            name=new_category_name.strip(),
+                        )
+                        folder.categories.add(new_category.id)
+                        folder.save()
+
+                    # Update folder with form data
+                    folder.excluded = form.cleaned_data["excluded"]
+                    main_settings = MainSettings.get_or_create_settings()
+                    if folder.excluded:
+                        if folder.sub_reddit not in main_settings.excluded_subs:
+                            main_settings.exluded_subreddits += f"{folder.sub_reddit},"
+                            main_settings.save()
+                    else:
+                        main_settings.exluded_subreddits = (
+                            main_settings.exluded_subreddits.replace(
+                                f"{folder.sub_reddit},", ""
+                            )
+                        )
+                        main_settings.save()
+                    folder.save()
+
+
+                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                        return JsonResponse(
+                            {"success": True, "message": "Settings saved successfully!"}
+                        )
+                    return redirect("some_success_url")
+
+            except Exception as e:
+                print("Exception", e)
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse(
+                        {"success": False, "errors": f"Error saving settings: {str(e)}"}
+                    )
+
+        # Form is invalid
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": False, "errors": form.errors})
+
+        return JsonResponse({"success": False, "errors": "Invalid request"})
+
+
+class CategoryCreateView(CreateView):
+    model = Category
+
+

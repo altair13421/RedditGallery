@@ -35,6 +35,31 @@
         margin-left: 0;
     }
 </style>
+
+<!-- Settings Modal -->
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="settingsModalLabel">Folder Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="settingsForm" method="post" action="{% url 'folder_settings' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div id="form-content">
+                        <!-- Form will be loaded here via AJAX -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div class="container-fluid">
     <!-- Floating Action Button -->
     <button type="button" class="btn btn-primary rounded-circle floating-btn" data-bs-toggle="modal" data-bs-target="#exampleModal">
@@ -93,21 +118,46 @@
 </div>
 
     <!-- Folder View -->
-    <div class="row p-4">
-        {% for folder in subs %}
-        <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4">
-            <a href="{% url 'folder_view_detail' folder.pk %}" class="text-decoration-none">
-                <div class="card folder-card h-100 text-center">
-                    <div class="card-body">
-                        <i class="fas fa-folder fa-4x text-warning mb-2"></i>
-                        <h5 class="card-title text-truncate">{{ folder.sub_reddit }}</h5>
-                        <small class="text-muted">{{ folder.item_count }} items</small>
-                    </div>
+    {% for category_all in categories %}
+    <div class="category-section">
+        <h3 class="mt-4 mb-3 d-flex align-items-center" data-bs-toggle="collapse" data-bs-target="#category-{{ category_all.id }}" style="cursor: pointer;">
+            {{ category_all.name }}
+            <i class="fas fa-chevron-down ms-2 collapse-icon"></i>
+        </h3>
+
+        <div class="collapse show" id="category-{{ category_all.id }}">
+            <div class="row p-4">
+                {% for folder in category_all.subreddits.all %}
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4">
+                    <a href="{% url 'folder_view_detail' folder.pk %}" class="text-decoration-none">
+                        <div class="card folder-card h-100 text-center">
+                            <div class="card-body">
+                                <a href="{% url 'folder_view_detail' folder.pk %}" class="text-decoration-none">
+                                    <i class="fas fa-folder fa-4x text-warning mb-2"></i>
+                                    <h5 class="card-title text-truncate">{{ folder.sub_reddit }}</h5>
+                                </a>
+                                <p>
+                                    {% for category in folder.categories.all %}
+                                        <small class="text-muted">{{category.name}}</small><br/>
+                                    {% empty %}
+                                        <small class="text-muted">Not Assigned</small>
+                                    {% endfor %}
+                                </p>
+                                <button class="btn btn-small settings-btn"
+                                        data-folder-id="{{ folder.pk }}"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#settingsModal">
+                                    <i class="fas fa-cog me-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </a>
                 </div>
-            </a>
+                {% endfor %}
+            </div>
         </div>
-        {% endfor %}
     </div>
+    {% endfor %}
 </div>
 
 <style>
@@ -136,4 +186,111 @@
     transform: scale(1.1);
 }
 </style>
+
+<script>
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const settingsModal = document.getElementById('settingsModal');
+    const formContent = document.getElementById('form-content');
+
+    // When modal is about to be shown
+    settingsModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const folderId = button.getAttribute('data-folder-id');
+
+        // Show loading state
+        formContent.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p>Loading...</p></div>';
+
+        // Load the form via AJAX
+        fetch(`/${folderId}/get-folder-form/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(html => {
+                formContent.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error loading form:', error);
+                formContent.innerHTML = '<div class="alert alert-danger">Error loading form. Please try again.</div>';
+            });
+    });
+
+    // Handle form submission
+    document.getElementById('settingsForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const submitButton = this.querySelector('button[type="submit"]');
+
+        // Disable submit button and show loading
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show';
+                alert.innerHTML = `
+                    ${data.message || 'Settings saved successfully!'}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                formContent.prepend(alert);
+
+                // Close modal after 2 seconds
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(settingsModal);
+                    modal.hide();
+                    // Optional: reload page or update UI
+                    location.reload();
+                }, 2000);
+            } else {
+                // Show error message
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-danger alert-dismissible fade show';
+                alert.innerHTML = `
+                    Error: ${data.errors || 'Unknown error occurred'}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                formContent.prepend(alert);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-danger alert-dismissible fade show';
+            alert.innerHTML = `
+                Network error occurred. Please try again.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            formContent.prepend(alert);
+        })
+        .finally(() => {
+            // Re-enable submit button
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Save changes';
+        });
+    });
+
+    // Clear alerts when modal is hidden
+    settingsModal.addEventListener('hidden.bs.modal', function () {
+        formContent.innerHTML = ''; // Clear form content
+    });
+});
+</script>
+
+
 {% endblock %}

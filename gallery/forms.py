@@ -1,11 +1,10 @@
 from django import forms
-from .models import MainSettings, SubReddit
+from .models import MainSettings, SubReddit, Category
 from .utils import get_subreddit_info
 import os
 
 
 class SubRedditForm(forms.ModelForm):
-
     def verify_sub_reddit(self, subreddit_name):
         """Verify if the subreddit exists and is valid."""
         try:
@@ -49,10 +48,8 @@ class SubRedditForm(forms.ModelForm):
 
 
 class SettingsForm(forms.ModelForm):
-
     def save(self, commit=...):
         instance: MainSettings = MainSettings.get_or_create_settings()
-        print("got it?")
         instance.client_id = self.cleaned_data.get("client_id")
         instance.client_secret = self.cleaned_data.get("client_secret")
         instance.user_agent = self.cleaned_data.get("user_agent")
@@ -63,11 +60,6 @@ class SettingsForm(forms.ModelForm):
             else instance.exluded_subreddits
         )
         instance.downloads_folder = self.cleaned_data.get("downloads_folder")
-        print(
-            type(self.cleaned_data.get("exluded_subreddits")),
-            self.cleaned_data.get("exluded_subreddits"),
-            type(instance.exluded_subreddits),
-        )
         for sub in instance.exluded_subreddits.split(","):
             sub_rd = SubReddit.objects.filter(sub_reddit=sub.strip())
             if sub_rd.exists():
@@ -75,7 +67,9 @@ class SettingsForm(forms.ModelForm):
                 sub_rd.excluded = True
                 sub_rd.save()
         SubReddit.objects.filter(excluded=True).exclude(
-            sub_reddit__in=[sub.strip() for sub in instance.exluded_subreddits.split(",")]
+            sub_reddit__in=[
+                sub.strip() for sub in instance.exluded_subreddits.split(",")
+            ]
         ).update(excluded=False)
 
         if instance.downloads_folder:
@@ -121,3 +115,49 @@ class SettingsForm(forms.ModelForm):
                 }
             ),
         }
+
+
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = Category
+        fields = ["name", "description"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3, "placeholder": "Description"}
+            ),
+        }
+
+
+class SubSettingsForm(forms.Form):
+    folder_id = forms.IntegerField(widget=forms.HiddenInput())  # Add this field
+    sub_display_name = forms.CharField(
+        max_length=255,
+        widget=forms.TextInput(attrs={"class": "form-control", "readonly": "readonly"}),
+    )
+
+    excluded = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+
+    # Use ModelMultipleChoiceField instead
+    categories = forms.ModelMultipleChoiceField(
+        queryset=Category.objects.all(),
+        widget=forms.CheckboxSelectMultiple(
+            attrs={"class": "form-check-input"},
+        ),
+        required=False,
+    )
+
+    # Add field for new category
+    new_category = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(
+            attrs={"class": "form-control", "placeholder": "Add new category"}
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)

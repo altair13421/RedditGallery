@@ -75,6 +75,11 @@
     <div class="col-12 d-flex justify-content-between align-items-center">
         <div>
             <h1 class="mb-2">{% if active_sub %}{{active_sub}}{% endif %} Gallery</h1>
+            <p>
+                {% for category in the_sub.categories.all %}
+                    <span class="badge bg-primary me-1">{{ category.name }}</span>
+                {% endfor %}
+            </p>
             <p class="text-muted">Total Images: {{ total_images }}</p>
         </div>
         {% if the_sub %}
@@ -142,17 +147,17 @@
                     <div class="card h-100 shadow-sm gallery-card">
                         <div class="position-relative">
                             <img src="{{ image.link }}"
-                                 class="card-img-top img-fluid gallery-image"
-                                 alt="{{ image.post_ref.title }}"
-                                 loading="lazy"
-                                 data-caption="{{ image.post_ref.title }}"
-                                 data-id="{{ image.pk }}"
-                                 data-subreddit="{{ image.subreddit.sub_reddit }}"
-                                 data-score="{{ image.post_ref.score }}"
-                                 data-url="{% url 'image_save' image.pk %}"
-                                 data-src="{{ image.link }}"
-                                 data-gallery="{% if image.gallery.link %}{{ image.gallery }}{% else %}{% endif %}"
-                                 style="height: 180px; object-fit: cover; cursor: zoom-in;">
+                                class="card-img-top img-fluid gallery-image"
+                                alt="{{ image.post_ref.title }}"
+                                loading="lazy"
+                                data-caption="{{ image.post_ref.title }}"
+                                data-id="{{ image.pk }}"
+                                data-subreddit="{{ image.subreddit.sub_reddit }}"
+                                data-score="{{ image.post_ref.score }}"
+                                data-url="{% url 'image_save' image.pk %}"
+                                data-src="{{ image.link }}"
+                                data-gallery="{% if image.gallery.link %}{{ image.gallery }}{% else %}{% endif %}"
+                                style="height: 180px; object-fit: cover; cursor: zoom-in;">
                             <div class="position-absolute bottom-0 end-0 m-2">
                                 <button class="btn btn-sm btn-primary download-btn"
                                         data-url="{% url 'image_save' image.pk %}"
@@ -270,26 +275,27 @@ document.querySelectorAll('.gallery-image').forEach(img => {
                 </div>
                 <div class="col-12">
                     <div class="d-flex align-items-center">
-                        <i class="fas fa-link me-2 text-muted">${this.dataset.gallery || this.gallery || ''}</i>
+                        <i class="fas fa-link me-2 text-muted"></i>
+                        <span>${this.dataset.gallery || this.gallery || ''}</span>
                     </div>
                 </div>
             </div>
         `;
-        
+
         // Set dimensions when image loads
         const modalImage = document.getElementById('modalImage');
         const imageInfo = document.getElementById('imageInfo');
-        
+
         modalImage.onload = function() {
             imageInfo.innerHTML = `
                 ${this.naturalWidth} × ${this.naturalHeight} px
                 ${metadataHtml}
             `;
         };
-        
+
         // Show original dimensions if already loaded
         if (modalImage.complete) modalImage.onload();
-        
+
         imageModal.show();
 // Modal download button functionality
 document.getElementById('modalDownloadBtn').addEventListener('click', async function(event) {
