@@ -74,7 +74,7 @@
 <div class="row mb-4">
     <div class="col-12 d-flex justify-content-between align-items-center">
         <div>
-            <h1 class="mb-2">{% if active_sub %}{{active_sub}}{% endif %} Gallery</h1>
+            <h1 class="mb-2">{% if active_sub %}{{active_sub}}{% endif %}{% if category_name %}{{ category_name }}{% endif %} Gallery</h1>
             <p>
                 {% for category in the_sub.categories.all %}
                     <span class="badge bg-primary me-1">{{ category.name }}</span>

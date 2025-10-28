@@ -118,37 +118,69 @@
 </div>
 
     <!-- Folder View -->
-    {% for category_all in categories %}
-    <div class="category-section">
-        <h3 class="mt-4 mb-3 d-flex align-items-center" data-bs-toggle="collapse" data-bs-target="#category-{{ category_all.id }}" style="cursor: pointer;">
-            {{ category_all.name }}
-            <i class="fas fa-chevron-down ms-2 collapse-icon"></i>
-        </h3>
 
-        <div class="collapse show" id="category-{{ category_all.id }}">
-            <div class="row p-4">
+<!-- Control Buttons -->
+<div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-light rounded">
+    <h5 class="mb-0">Categories</h5>
+    <div>
+        <button class="btn btn-outline-primary btn-sm me-2" onclick="expandAll()">
+            <i class="fas fa-expand me-1"></i> Expand All
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="collapseAll()">
+            <i class="fas fa-compress me-1"></i> Collapse All
+        </button>
+    </div>
+</div>
+
+{% for category_all in categories %}
+<div class="category-section mb-4">
+    <div class="category-header card-header bg-light d-flex justify-content-between align-items-center p-3 rounded-top"
+            data-bs-toggle="collapse"
+            data-bs-target="#category-{{ category_all.id }}"
+            style="cursor: pointer; border-bottom: none;">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-folder text-warning me-3 fa-lg"></i>
+            <h4 class="mb-0 fw-bold text-dark">{{ category_all.name }}</h4>
+            <span class="badge bg-primary ms-3">{{ category_all.subreddits.all.count }} items</span>
+        </div>
+        <div class="d-flex align-items-center">
+            <button class="btn btn-outline-success btn-sm me-3 gallery-btn"
+                    data-category-id="{{ category_all.id }}"
+                    onclick="toggleGallery('{{ category_all.name }}')">
+                <i class="fas fa-th-large me-1"></i> Gallery
+            </button>
+            <i class="fas fa-chevron-right transition-icon text-muted"></i>
+        </div>
+    </div>
+
+    <!-- Category Content -->
+    <div class="collapse show" id="category-{{ category_all.id }}">
+        <div class="card-body p-0">
+            <div class="row p-4 grid-view" id="grid-view-{{ category_all.id }}">
                 {% for folder in category_all.subreddits.all %}
                 <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4">
                     <a href="{% url 'folder_view_detail' folder.pk %}" class="text-decoration-none">
-                        <div class="card folder-card h-100 text-center">
-                            <div class="card-body">
-                                <a href="{% url 'folder_view_detail' folder.pk %}" class="text-decoration-none">
-                                    <i class="fas fa-folder fa-4x text-warning mb-2"></i>
-                                    <h5 class="card-title text-truncate">{{ folder.sub_reddit }}</h5>
+                        <div class="card folder-card h-100 text-center shadow-sm hover-shadow">
+                            <div class="card-body d-flex flex-column">
+                                <a href="{% url 'folder_view_detail' folder.pk %}" class="text-decoration-none flex-grow-1">
+                                    <i class="fas fa-folder fa-3x text-warning mb-2"></i>
+                                    <h6 class="card-title text-truncate text-dark fw-semibold">{{ folder.sub_reddit }}</h6>
                                 </a>
-                                <p>
+                                <p class="mb-2 flex-grow-0">
                                     {% for category in folder.categories.all %}
-                                        <small class="text-muted">{{category.name}}</small><br/>
+                                        <span class="badge bg-light text-dark border me-1 mb-1"><a href='{% url "gallery" %}?category={{category.name}}'>{{ category.name }}</a></span><br/>
                                     {% empty %}
                                         <small class="text-muted">Not Assigned</small>
                                     {% endfor %}
                                 </p>
-                                <button class="btn btn-small settings-btn"
-                                        data-folder-id="{{ folder.pk }}"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#settingsModal">
-                                    <i class="fas fa-cog me-1"></i>
-                                </button>
+                                <div class="flex-grow-0">
+                                    <button class="btn btn-outline-secondary btn-sm settings-btn"
+                                            data-folder-id="{{ folder.pk }}"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#settingsModal">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </a>
@@ -157,9 +189,128 @@
             </div>
         </div>
     </div>
-    {% endfor %}
 </div>
+{% endfor %}
 
+            <div class="row p-4 grid-view" id="grid-view-{{ category_all.id }}">
+                {% for folder in no_category_subs %}
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4">
+                    <a href="{% url 'folder_view_detail' folder.pk %}" class="text-decoration-none">
+                        <div class="card folder-card h-100 text-center shadow-sm hover-shadow">
+                            <div class="card-body d-flex flex-column">
+                                <a href="{% url 'folder_view_detail' folder.pk %}" class="text-decoration-none flex-grow-1">
+                                    <i class="fas fa-folder fa-3x text-warning mb-2"></i>
+                                    <h6 class="card-title text-truncate text-dark fw-semibold">{{ folder.sub_reddit }}</h6>
+                                </a>
+                                <p class="mb-2 flex-grow-0">
+                                    {% for category in folder.categories.all %}
+                                        <span class="badge bg-light text-dark border me-1 mb-1">{{ category.name }}</span>
+                                    {% empty %}
+                                        <small class="text-muted">Not Assigned</small>
+                                    {% endfor %}
+                                </p>
+                                <div class="flex-grow-0">
+                                    <button class="btn btn-outline-secondary btn-sm settings-btn"
+                                            data-folder-id="{{ folder.pk }}"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#settingsModal">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+
+</div>
+<style>
+.category-header {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid #e9ecef;
+}
+
+.category-header:hover {
+    background-color: #f8f9fa !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.category-header[aria-expanded="true"] {
+    background-color: #e9ecef !important;
+    border-bottom: 1px solid #dee2e6 !important;
+}
+
+.category-header[aria-expanded="true"] .transition-icon {
+    transform: rotate(180deg);
+}
+
+.transition-icon {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-shadow {
+    transition: all 0.3s ease;
+}
+
+.hover-shadow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+}
+
+.folder-card {
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.folder-card:hover {
+    border-color: #ffc107;
+}
+
+.gallery-btn {
+    transition: all 0.3s ease;
+}
+
+.gallery-btn.active {
+    background-color: #198754;
+    color: white;
+    border-color: #198754;
+}
+
+/* Gallery View Styles */
+.gallery-view {
+    display: none;
+}
+
+.gallery-view.active {
+    display: block;
+}
+
+.grid-view.active {
+    display: flex;
+}
+
+.grid-view {
+    display: flex;
+}
+
+/* Gallery specific styles */
+.gallery-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.gallery-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+</style>
 <style>
 .folder-card {
     transition: transform 0.2s;
@@ -291,6 +442,111 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+
+<script>
+// Initialize page with collapsed state
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCollapsedState();
+});
+
+function initializeCollapsedState() {
+    const collapses = document.querySelectorAll('.collapse');
+    const headers = document.querySelectorAll('.category-header');
+    
+    // Check if user has a saved preference
+    const userPreference = localStorage.getItem('categoriesCollapsed');
+    
+    if (userPreference === 'true') {
+        // Keep everything collapsed (default state)
+        headers.forEach(header => {
+            const icon = header.querySelector('.transition-icon');
+            const target = document.querySelector(header.getAttribute('data-bs-target'));
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-right');
+            header.querySelector('.fa-folder').classList.remove('fa-folder-open');
+            header.querySelector('.fa-folder').classList.add('fa-folder');
+        });
+    } else if (userPreference === 'false') {
+        // Expand everything
+        expandAll();
+    }
+    // If no preference, keep default collapsed state
+}
+
+function expandAll() {
+    const collapses = document.querySelectorAll('.collapse');
+    const headers = document.querySelectorAll('.category-header');
+    
+    collapses.forEach(collapse => {
+        new bootstrap.Collapse(collapse, { show: true });
+    });
+    
+    headers.forEach(header => {
+        const icon = header.querySelector('.transition-icon');
+        icon.classList.remove('fa-chevron-right');
+        icon.classList.add('fa-chevron-down');
+        header.querySelector('.fa-folder').classList.remove('fa-folder');
+        header.querySelector('.fa-folder').classList.add('fa-folder-open');
+    });
+    
+    localStorage.setItem('categoriesCollapsed', 'false');
+}
+
+function collapseAll() {
+    const collapses = document.querySelectorAll('.collapse');
+    const headers = document.querySelectorAll('.category-header');
+    
+    collapses.forEach(collapse => {
+        new bootstrap.Collapse(collapse, { hide: true });
+    });
+    
+    headers.forEach(header => {
+        const icon = header.querySelector('.transition-icon');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-right');
+        header.querySelector('.fa-folder').classList.remove('fa-folder-open');
+        header.querySelector('.fa-folder').classList.add('fa-folder');
+    });
+    
+    localStorage.setItem('categoriesCollapsed', 'true');
+}
+
+// Enhanced individual toggle functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const categoryHeaders = document.querySelectorAll('.category-header');
+    
+    categoryHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const icon = this.querySelector('.transition-icon');
+            const folderIcon = this.querySelector('.fa-folder');
+            const target = document.querySelector(this.getAttribute('data-bs-target'));
+            
+            setTimeout(() => {
+                if (target.classList.contains('show')) {
+                    icon.classList.remove('fa-chevron-right');
+                    icon.classList.add('fa-chevron-down');
+                    folderIcon.classList.remove('fa-folder');
+                    folderIcon.classList.add('fa-folder-open');
+                } else {
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-right');
+                    folderIcon.classList.remove('fa-folder-open');
+                    folderIcon.classList.add('fa-folder');
+                }
+            }, 350); // Match Bootstrap collapse transition duration
+        });
+    });
+});
+
+// Your existing toggleGallery function
+function toggleGallery(categoryName) {
+    // Go to /gallery/?category=category.name
+    window.location.href = `/gallery/?category=${categoryName}`;
+}
+</script>
+
+
 
 
 {% endblock %}

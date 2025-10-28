@@ -75,16 +75,28 @@ class ImageListView(ListView):
         context["total_images"] = Image.objects.count()
         context["newest_image"] = Image.objects.order_by("-date_added").first()
         context["subs"] = SubReddit.objects.all()
+        context["categories"] = Category.get_all_categories()
+        context["category_name"] = self.request.GET.get("category", "")
         return context
 
     def get_queryset(self):
+        if self.request.GET.get("category", "") != "":
+            category_name = self.request.GET.get("category", "")
+            category = Category.objects.filter(name=category_name).first()
+            if category:
+                images = (
+                    Image.objects.select_related()
+                    .filter(subreddit__in=category.subs)
+                    .order_by("-date_added")
+                    .all()
+                )
+                return images
         return (
             Image.objects.select_related()
             .exclude(subreddit__excluded=True)
             .order_by("-date_added")
             .all()
         )
-
 
 class ImageSaveView(View):
     def get(self, request, pk):
@@ -151,6 +163,7 @@ class FolderView(ListView):
         context["total_images"] = Image.objects.count()
         context["form"] = SubRedditForm()
         context["categories"] = Category.objects.all()
+        context["no_category_subs"] = SubReddit.objects.filter(categories__isnull=True)
         return context
 
     def get_queryset(self):
