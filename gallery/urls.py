@@ -21,6 +21,7 @@ urlpatterns = [
     path("options/", views.FolderOptionsView.as_view(), name="folder_options"),
     path("saved/", views.SavedImagesView.as_view(), name="saved_images"),
     path("image/<int:pk>/save/", views.ImageSaveView.as_view(), name="image_save"),
+    path("bulk_subs/", views.BulkUploadSubreddits.as_view(), name="bulk_upload"),
     # path('image/<int:pk>/', views.ImageDetailView.as_view(), name='image_detail'),
     # path('upload/', views.ImageUploadView.as_view(), name='image_upload'),
     # path('<int:pk>/', views.ImageDetailView.as_view(), name='image_detail'),

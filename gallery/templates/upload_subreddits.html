@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="card-title text-center">Upload Subreddits JSON</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="json-data" class="form-label">Paste your JSON here:</label>
+                        <textarea id="json-data" name="json_data" class="form-control" rows="10" placeholder='{"subs": ["sub_1", "sub_2"]}'></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Upload</button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+{% endblock %}

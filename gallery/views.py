@@ -1,5 +1,6 @@
 import os
 import requests
+import json
 
 from django.db import OperationalError, transaction
 from django.db.models.manager import BaseManager
@@ -206,8 +207,8 @@ class FolderOptionsView(View):
                 main_settings = MainSettings.get_or_create_settings()
                 if sub_reddit.excluded:
                     sub_reddit.excluded = False
-                    main_settings.exluded_subreddits = (
-                        main_settings.exluded_subreddits.replace(
+                    main_settings.excluded_subreddits = (
+                        main_settings.excluded_subreddits.replace(
                             f"{sub_reddit.sub_reddit},", ""
                         )
                     )
@@ -215,7 +216,7 @@ class FolderOptionsView(View):
                 else:
                     sub_reddit.excluded = True
                     if sub_reddit.sub_reddit not in main_settings.excluded_subs:
-                        main_settings.exluded_subreddits += f"{sub_reddit.sub_reddit},"
+                        main_settings.excluded_subreddits += f"{sub_reddit.sub_reddit},"
                         main_settings.save()
                 sub_reddit.save()
 
@@ -387,11 +388,11 @@ class FolderSettingsFormView(View):
                     main_settings = MainSettings.get_or_create_settings()
                     if folder.excluded:
                         if folder.sub_reddit not in main_settings.excluded_subs:
-                            main_settings.exluded_subreddits += f"{folder.sub_reddit},"
+                            main_settings.excluded_subreddits += f"{folder.sub_reddit},"
                             main_settings.save()
                     else:
-                        main_settings.exluded_subreddits = (
-                            main_settings.exluded_subreddits.replace(
+                        main_settings.excluded_subreddits = (
+                            main_settings.excluded_subreddits.replace(
                                 f"{folder.sub_reddit},", ""
                             )
                         )
@@ -421,5 +422,33 @@ class FolderSettingsFormView(View):
 
 class CategoryCreateView(CreateView):
     model = Category
+
+class BulkUploadSubreddits(View):
+
+    def post(self, request, *args, **kwargs):
+        try:
+            json_data = request.POST.get("json_data", "")
+
+            data = json.loads(json_data)
+            subs = data.get("subs", [])
+            for sub_name in subs:
+                sub_name = sub_name.strip()
+                sub_form = SubRedditForm({"sub_reddit": sub_name})
+                if sub_form.is_valid():
+                    try:
+                        sub_form.save()
+                        print("Added Subreddit:", sub_name)
+                    except Exception as e:
+                        print("Error saving subreddit:", sub_name, e)
+                        continue
+                else:
+                    print("Invalid Subreddit Form for:", sub_name, sub_form.errors)
+            return redirect("folder_view")
+        except Exception:
+            return HttpResponse("Invalid JSON Data")
+
+    def get(self, request, *args, **kwargs):
+        # Renders the upload form
+        return render(request, 'upload_subreddits.html')
 
 

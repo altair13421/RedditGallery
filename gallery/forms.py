@@ -53,14 +53,14 @@ class SettingsForm(forms.ModelForm):
         instance.client_id = self.cleaned_data.get("client_id")
         instance.client_secret = self.cleaned_data.get("client_secret")
         instance.user_agent = self.cleaned_data.get("user_agent")
-        instance.exluded_subreddits = self.cleaned_data.get("exluded_subreddits")
-        instance.exluded_subreddits = (
-            ",".join(instance.exluded_subreddits)
-            if type(instance.exluded_subreddits) is list
-            else instance.exluded_subreddits
+        instance.excluded_subreddits = self.cleaned_data.get("excluded_subreddits")
+        instance.excluded_subreddits = (
+            ",".join(instance.excluded_subreddits)
+            if type(instance.excluded_subreddits) is list
+            else instance.excluded_subreddits
         )
         instance.downloads_folder = self.cleaned_data.get("downloads_folder")
-        for sub in instance.exluded_subreddits.split(","):
+        for sub in instance.excluded_subreddits.split(","):
             sub_rd = SubReddit.objects.filter(sub_reddit=sub.strip())
             if sub_rd.exists():
                 sub_rd = sub_rd.first()
@@ -68,7 +68,7 @@ class SettingsForm(forms.ModelForm):
                 sub_rd.save()
         SubReddit.objects.filter(excluded=True).exclude(
             sub_reddit__in=[
-                sub.strip() for sub in instance.exluded_subreddits.split(",")
+                sub.strip() for sub in instance.excluded_subreddits.split(",")
             ]
         ).update(excluded=False)
 
@@ -84,7 +84,7 @@ class SettingsForm(forms.ModelForm):
             "client_id",
             "client_secret",
             "user_agent",
-            "exluded_subreddits",
+            "excluded_subreddits",
             "downloads_folder",
         )
         widgets = {
@@ -106,7 +106,7 @@ class SettingsForm(forms.ModelForm):
                     "help_text": "Path where downloads will be saved",
                 }
             ),
-            "exluded_subreddits": forms.Textarea(
+            "excluded_subreddits": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 3,

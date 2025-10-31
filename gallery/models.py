@@ -185,7 +185,7 @@ class MainSettings(models.Model):
     user_agent = models.CharField(max_length=255, blank=True)
 
     # Other User Settings can be added here
-    exluded_subreddits = models.TextField(
+    excluded_subreddits = models.TextField(
         blank=True,
         null=True,
         help_text="Comma-separated list of subreddits to ignore to view From the gallery.",
@@ -200,8 +200,8 @@ class MainSettings(models.Model):
     @property
     def excluded_subs(self):
         """Return a list of excluded subreddits."""
-        if self.exluded_subreddits:
-            return [sub.strip() for sub in self.exluded_subreddits.split(",")]
+        if self.excluded_subreddits:
+            return [sub.strip() for sub in self.excluded_subreddits.split(",")]
         return []
 
     @classmethod
@@ -211,7 +211,7 @@ class MainSettings(models.Model):
             "client_id": instance.client_id,
             "client_secret": instance.client_secret,
             "user_agent": instance.user_agent,
-            "exluded_subreddits": instance.exluded_subreddits,
+            "excluded_subreddits": instance.excluded_subreddits,
             "downloads_folder": instance.downloads_folder,
         }
 
@@ -233,6 +233,7 @@ class MainSettings(models.Model):
             else:
                 default_settings.downloads_folder = "/downloads"
             default_settings.save()
+            default_settings.excluded_subreddits = "announcements, mod, moderators, all, popular, random"
             return default_settings
 
     def save(self, *args, **kwargs):
@@ -243,10 +244,10 @@ class MainSettings(models.Model):
         super().save(*args, **kwargs)
 
     def __repr__(self):
-        return "MainSettings(client_id={}, client_secret={}, user_agent={}, exluded_subreddits={}, downloads_folder={})".format(
+        return "MainSettings(client_id={}, client_secret={}, user_agent={}, excluded_subreddits={}, downloads_folder={})".format(
             self.client_id,
             self.client_secret,
             self.user_agent,
-            self.exluded_subreddits,
+            self.excluded_subreddits,
             self.downloads_folder,
         )

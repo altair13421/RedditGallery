@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
                 ('client_id', models.CharField(blank=True, max_length=255)),
                 ('client_secret', models.CharField(blank=True, max_length=255)),
                 ('user_agent', models.CharField(blank=True, max_length=255)),
-                ('exluded_subreddits', models.TextField(blank=True, help_text='Comma-separated list of subreddits to ignore to view From the gallery.', null=True)),
+                ('excluded_subreddits', models.TextField(blank=True, help_text='Comma-separated list of subreddits to ignore to view From the gallery.', null=True)),
                 ('downloads_folder', models.CharField(blank=True, help_text='Folder where images will be downloaded.', max_length=255, null=True)),
             ],
         ),
