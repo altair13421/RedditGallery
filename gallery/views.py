@@ -75,9 +75,12 @@ class ImageListView(ListView):
         context = super().get_context_data(**kwargs)
         context["total_images"] = Image.objects.count()
         context["newest_image"] = Image.objects.order_by("-date_added").first()
-        context["subs"] = SubReddit.objects.all()
+        if (category := self.request.GET.get("category", "")) == "":
+            context["subs"] = SubReddit.objects.filter(excluded=True)
+        else:
+            context["subs"] = SubReddit.objects.filter(categories=Category.objects.filter(name=category).first())
         context["categories"] = Category.get_all_categories()
-        context["category_name"] = self.request.GET.get("category", "")
+        context["category_name"] = category
         return context
 
     def get_queryset(self):
@@ -231,10 +234,22 @@ class FolderOptionsView(View):
                     f"Deleted {posts[0]} posts, {images[0]} images, {gallerys[0]} gallerys"
                 )
             elif "sync" in data.keys():
+                if (category := data.get("category", "")) != "":
+                    subs = SubReddit.objects.filter(categories=Category.objects.filter(name=category).first())
+                    print("sub_category:", category, "subs:", subs.count(), "names: ", [sub.sub_reddit for sub in subs])
+                    for sub in subs:
+                        print("Syncing Subreddit:", sub.sub_reddit)
+                        sync_singular(sub)
                 sync_singular(sub_reddit)
             return redirect("folder_view_detail", pk=pk)
         else:
             if "sync" in data.keys():
+                if (category := data.get("category", "")) != "":
+                    subs = SubReddit.objects.filter(categories=Category.objects.filter(name=category).first())
+                    print("sub_category:", category, "subs:", subs.count(), "names: ", [sub.sub_reddit for sub in subs])
+                    for sub in subs:
+                        print("Syncing Subreddit:", sub.sub_reddit)
+                        sync_singular(sub)
                 sync_data()
             if "delete" in data.keys():
                 print("deleting posts")

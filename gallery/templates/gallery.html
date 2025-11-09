@@ -87,6 +87,7 @@
             <form method="post" action="{% url 'folder_options' %}">
                 {% csrf_token %}
                 <input type="hidden" name="pk" value="{{ the_sub.pk }}">
+                <input type="hidden" name="category" value="{{ category_name }}">
                 <button type="submit" name="excluded" class="btn btn-outline-primary">
                     <i class="fas fa-eye-slash me-1"></i> {% if the_sub.excluded %}Include{% else %}Exclude{% endif %}
                 </button>
@@ -106,6 +107,7 @@
         <div class="btn-group" role="group">
             <form method="post" action="{% url 'folder_options' %}">
                 {% csrf_token %}
+                <input type="hidden" name="category" value="{{ category_name }}">
                 <button type="submit" name="sync" class="btn btn-outline-success">
                     <i class="fas fa-sync-alt me-1"></i> Sync
                 </button>
@@ -120,6 +122,7 @@
 
 
     <div class="row">
+
         <!-- Sidebar -->
         <div class="col-md-3 col-lg-2 d-md-block sidebar bg-light">
             <div class="position-sticky pt-3">
@@ -130,7 +133,7 @@
                     {% for folder in subs %}
                     <li class="nav-item">
                         <a class="nav-link {% if active_sub == folder.sub_reddit %}active{% endif %}" href="{% url 'folder_view_detail' folder.pk %}">
-                            <i class="fas fa-folder me-2"></i>{{ folder.name }}
+                            {% comment %} <i class="fas fa-folder me-2"></i>{{ folder.name }} {% endcomment %}
                             <span class="badge bg-secondary float-end">{{ folder.sub_reddit }}</span>
                         </a>
                     </li>
@@ -375,4 +378,200 @@ document.getElementById('modalDownloadBtn').addEventListener('click', async func
     background-color: rgba(0, 0, 0, 0.9);
 }
 </style>
+
+    <style>
+        .gallery-card {
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        .gallery-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .gallery-image {
+            transition: transform 0.5s ease;
+            height: 180px;
+            object-fit: cover;
+            cursor: zoom-in;
+        }
+        
+        .gallery-card:hover .gallery-image {
+            transform: scale(1.05);
+        }
+        
+        .card-body {
+            padding: 12px;
+        }
+        
+        .card-text {
+            margin-bottom: 8px;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .card-text.muted {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+        
+        .card-text.muted a {
+            color: #6c757d;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        .card-text.muted a:hover {
+            color: #0d6efd;
+        }
+        
+        .download-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .download-btn:hover {
+            background: #fff;
+            color: #0d6efd;
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, transparent 60%, rgba(0, 0, 0, 0.3));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .gallery-card:hover .image-overlay {
+            opacity: 1;
+        }
+        
+        .score-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+    </style>
+
+
+        <style>
+        .sidebar {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.03);
+        }
+        
+        .sidebar-heading {
+            color: #495057 !important;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding-top: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .nav-link {
+            color: #6c757d;
+            border-radius: 8px;
+            margin: 2px 8px;
+            padding: 10px 12px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            position: relative;
+            font-size: 0.9rem;
+        }
+        
+        .nav-link:hover {
+            color: #0d6efd;
+            background-color: rgba(13, 110, 253, 0.08);
+            transform: translateX(3px);
+        }
+        
+        .nav-link.active {
+            color: #fff;
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+            font-weight: 500;
+        }
+        
+        .nav-link.active .badge {
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            color: #0d6efd !important;
+        }
+        
+        .badge {
+            font-size: 0.7rem;
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-item {
+            margin-bottom: 4px;
+        }
+        
+        .fa-folder, .fa-folder-tree {
+            color: #ffc107;
+        }
+        
+        .nav-link.active .fa-folder {
+            color: white;
+        }
+        
+        .position-sticky {
+            padding-top: 1rem !important;
+        }
+        
+        /* Animation for folder icon */
+        .nav-link:hover .fa-folder {
+            animation: bounce 0.5s ease;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        /* Subtle separator between items */
+        .nav-item:not(:last-child)::after {
+            content: '';
+            display: block;
+            height: 1px;
+            background: rgba(0, 0, 0, 0.03);
+            margin: 4px 12px;
+        }
+    </style>
 {% endblock %}
