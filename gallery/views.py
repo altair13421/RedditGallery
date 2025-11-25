@@ -459,8 +459,8 @@ class BulkUploadSubreddits(View):
                 else:
                     print("Invalid Subreddit Form for:", sub_name, sub_form.errors)
             return redirect("folder_view")
-        except Exception:
-            return HttpResponse("Invalid JSON Data")
+        except Exception as E:
+            return HttpResponse(f"{E},Invalid JSON Data")
 
     def get(self, request, *args, **kwargs):
         # Renders the upload form
