@@ -2,6 +2,7 @@ import os
 import requests
 import json
 
+from collections import OrderedDict
 from django.db import OperationalError, transaction
 from django.db.models.manager import BaseManager
 from django.shortcuts import get_object_or_404, redirect, render
@@ -440,24 +441,68 @@ class CategoryCreateView(CreateView):
 
 class BulkUploadSubreddits(View):
 
+    def _handle_subs_only(self, subs_list):
+        for sub_name in subs_list:
+            sub_name = sub_name.strip()
+            sub_form = SubRedditForm({"sub_reddit": sub_name})
+            if sub_form.is_valid():
+                try:
+                    sub_form.save()
+                    print("Added Subreddit:", sub_name)
+                except Exception as e:
+                    print("Error saving subreddit:", sub_name, e)
+                    continue
+            else:
+                print("Invalid Subreddit Form for:", sub_name, sub_form.errors)
+
+    def _handle_subs_with_categories(self, subs_dict):
+        for sub_name, categories in subs_dict.items():
+            sub_name = sub_name.strip()
+            sub_form = SubRedditForm({"sub_reddit": sub_name})
+            if sub_form.is_valid():
+                try:
+                    sub_instance = sub_form.save()
+                    print("Added Subreddit:", sub_name)
+                    for category_name in categories:
+                        category_name = category_name.strip()
+                        category, created = Category.objects.get_or_create(name=category_name)
+                        sub_instance.categories.add(category)
+                    sub_instance.save()
+                except Exception as e:
+                    print("Error saving subreddit:", sub_name, e)
+                    continue
+            else:
+                print("Invalid Subreddit Form for:", sub_name, sub_form.errors)
+
+    def _handle_export_subs(self):
+        subs = SubReddit.objects.all()
+        export_data = OrderedDict({"subs": {}})
+        export_file_list = "subreddits_export.json"
+        with open(export_file_list, "w") as ef:
+            json.dump(
+                {"subs": [sub.sub_reddit for sub in subs]}, ef, indent=4
+            )
+        for sub in subs:
+            export_data["subs"][sub.sub_reddit] = [cat.name for cat in sub.categories.all()]
+        export_file_category = "subreddits_category_export.json"
+        with open(export_file_category, "w") as ef:
+            json.dump(export_data, ef, indent=4)
+
     def post(self, request, *args, **kwargs):
         try:
+            export = request.POST.get("export", "")
+
+            if export == "Export":
+                self._handle_export_subs()
+                return redirect("folder_view")
             json_data = request.POST.get("json_data", "")
 
             data = json.loads(json_data)
             subs = data.get("subs", [])
-            for sub_name in subs:
-                sub_name = sub_name.strip()
-                sub_form = SubRedditForm({"sub_reddit": sub_name})
-                if sub_form.is_valid():
-                    try:
-                        sub_form.save()
-                        print("Added Subreddit:", sub_name)
-                    except Exception as e:
-                        print("Error saving subreddit:", sub_name, e)
-                        continue
-                else:
-                    print("Invalid Subreddit Form for:", sub_name, sub_form.errors)
+            if isinstance(subs[0], dict):
+                self._handle_subs_with_categories(subs)
+            else:
+                self._handle_subs_only(subs)
             return redirect("folder_view")
         except Exception as E:
             return HttpResponse(f"{E},Invalid JSON Data")

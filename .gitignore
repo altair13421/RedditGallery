@@ -147,3 +147,6 @@ backup.json
 actual_subs.json
 hmmm_subs.json
 subs.json\
+subreddits_category_export.json
+subreddits_export.json
+RedditGallery/__pycache__/settings.cpython-313.pyc
