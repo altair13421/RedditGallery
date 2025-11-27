@@ -75,7 +75,6 @@ def get_subreddit_info(
             all_posts = sub_data.hot(limit=limit)
         elif type_ == "new":
             all_posts = sub_data.new(limit=limit)
-        print(sub_data)
 
         posts = list()
         posts.append(
@@ -450,7 +449,6 @@ def get_posts(subreddit: SubReddit):
             except Exception:
                 pass
             if posts:
-                print("posts: ", posts[1:3])
                 write_posts(posts[1:], subreddit)
                 reset_connection_pool()
 
