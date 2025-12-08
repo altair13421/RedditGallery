@@ -36,3 +36,15 @@ Technically A Reddit Scrapper?
   }
 }
 ```
+
+## Running this application
+```sh
+# clone this repo
+# Make sure you have docker, and docker-compose installed
+# make sure to Check The Download Folder in the docker-compose.yml file (The Third Mount, I added a Comment to it)
+# Then Basic just
+docker-compose up --build -d
+```
+
+
+
