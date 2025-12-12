@@ -29,6 +29,8 @@ class Post(models.Model):
     )
     reddit_id = models.CharField(max_length=255, blank=True)
     link = models.URLField(blank=True)
+    author = models.CharField(max_length=255, blank=True)
+    author_url = models.URLField(blank=True)
     title = models.CharField(max_length=511, blank=True)
     content = models.TextField(blank=True)
     score = models.IntegerField(default=0)
@@ -36,6 +38,11 @@ class Post(models.Model):
 
     def __str__(self):
         return f"{self.subreddit.name} - {self.link} - {self.title}"
+
+    def save(self, *args, **kwargs):
+        if self.author:
+            self.author_url = f"""https://www.reddit.com/user/{self.author}"""
+        super().save(*args, **kwargs)
 
     @property
     def check_deleted(self):

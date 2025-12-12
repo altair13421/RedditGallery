@@ -159,6 +159,7 @@
                                 data-score="{{ image.post_ref.score }}"
                                 data-url="{% url 'image_save' image.pk %}"
                                 data-src="{{ image.link }}"
+                                data-author="{{ image.post_ref.author }}"
                                 data-gallery="{% if image.gallery.link %}{{ image.gallery }}{% else %}{% endif %}"
                                 style="height: 180px; object-fit: cover; cursor: zoom-in;">
                             <div class="position-absolute bottom-0 end-0 m-2">
@@ -172,6 +173,7 @@
                         </div>
                         <div class="card-body p-2">
                             <p class="card-text text-truncate small">{{ image.post_ref.title }}</p>
+                            <p class="card-text text-truncate small muted"><a href='{{ image.post_ref.author_url }}'>{{ image.post_ref.author }}</a></p>
                             <p class="card-text text-truncate small muted"> <a href="{% url 'folder_view_detail' image.subreddit.id %}">{{ image.subreddit.sub_reddit }}</a></p>
                         </div>
                     </div>

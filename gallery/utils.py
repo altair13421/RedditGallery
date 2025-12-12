@@ -67,28 +67,47 @@ def get_subreddit_info(
     subreddit: str, time_frame: str, type_: str, limit: int = LIMIT
 ) -> list:
     try:
-        sub_data = client.subreddit(f"{subreddit}")  # * minus the "r/"
+        if "u/" in subreddit:
+            sub_data = client.redditor("" + subreddit.split("u/")[-1])
+            if type_ == "top":
+                all_posts = sub_data.submissions.top(time_filter=time_frame, limit=limit)
+            elif type_ == "hot":
+                all_posts = sub_data.submissions.hot(limit=limit)
+            elif type_ == "new":
+                all_posts = sub_data.submissions.new(limit=limit)
 
-        if type_ == "top":
-            all_posts = sub_data.top(time_filter=time_frame, limit=limit)
-        elif type_ == "hot":
-            all_posts = sub_data.hot(limit=limit)
-        elif type_ == "new":
-            all_posts = sub_data.new(limit=limit)
+            posts = list()
+            posts.append(
+                {
+                    "title_sub": sub_data.fullname,
+                    "display_name": sub_data.name,
+                }
+            )
 
-        posts = list()
-        posts.append(
-            {
-                "title_sub": sub_data.title,
-                "display_name": sub_data.display_name,
-            }
-        )
+        else:
+            sub_data = client.subreddit(f"{subreddit}")  # * minus the "r/"
+
+            if type_ == "top":
+                all_posts = sub_data.top(time_filter=time_frame, limit=limit)
+            elif type_ == "hot":
+                all_posts = sub_data.hot(limit=limit)
+            elif type_ == "new":
+                all_posts = sub_data.new(limit=limit)
+
+            posts = list()
+            posts.append(
+                {
+                    "title_sub": sub_data.title,
+                    "display_name": sub_data.display_name,
+                }
+            )
         for post in all_posts:
             data = {
                 "title": post.title,
                 "content": post.selftext,
                 "id": post.id,
                 "score": post.score,
+                "author": post.author,
                 # "comments": post.num_comments,
                 "url": post.url,
                 "perma_url": f"{reddit_link}/{post.permalink}",
@@ -277,6 +296,7 @@ def write_posts(posts: list, sub_reddit: SubReddit):
                     "content": post_data["content"],
                     "link": post_data["perma_url"],
                     "score": post_data["score"],
+                    "author": post_data.get("author", ""),
                     "subreddit": sub_reddit,
                 },
             )
