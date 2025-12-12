@@ -29,7 +29,7 @@ services:
     volumes:
       - ./data:/app/data  # Persist SQLite data
       - ./:/app          # Bind-mount code (for development)
-      - /mnt/games/Scripts/Downloads:/downloads  # New mount
+      - /mnt/games/Scripts/Downloads:/downloads  # Need this For Downloads.
     environment:
       - DATABASE_URL=postgres://reddit_user:reddit_password@db:5432/reddit_app
       - POSTGRES_HOST=db
