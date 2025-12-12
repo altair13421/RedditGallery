@@ -2,18 +2,22 @@
 
 Technically A Reddit Scrapper?
 
-## Works for:
+## Works for
+
 - images
 - galleries
 - gifs
+- Users Now (need to add users When adding a Subreddit "u/")
+  
+## Doesn't Work
 
-## Doesn't Work:
 - I think Videos
 - UI BAD (Still better than the Initial one I thought)
 - Comments aren't there (On Purpose)
 - no vpn support (Don't wanna Add it, works for me).
 
-## Other Features:
+## Other Features
+
 - Can Add Categories, and Assign Subreddits to these Categories
 - Can View These Categories from the Home page (Like I said, UI Bad)
 - The Settings Tab will have what these ENVs Set
@@ -21,30 +25,47 @@ Technically A Reddit Scrapper?
 - Can Bulk Import With and Without Categories
 
 ### Without Categories
+
 ```json
 {
-  "subs": ["AnimeWallpaper", "moescape"]
+  "subs": ["AnimeWallpaper", "moescape", "u/moshimoshibe"]
 }
 ```
+
 ### With Categories
+
 ```json
 {
   "subs": {
     "AnimeWallpaper": ["QuickView", "Wallpaper"],
     "moescape": ["Wallpaper"],
-    "moesmoking": ["Questionable"]
+    "moesmoking": ["Questionable"],
+    "u/moshimoshibe": ["users", "pfps"]
   }
 }
 ```
 
 ## Running this application
+
 ```sh
 # clone this repo
 # Make sure you have docker, and docker-compose installed
+# Install Docker
+sudo pacman -S docker docker-compose
+
+# Start and enable Docker service
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Add your user to docker group (avoid sudo)
+sudo usermod -aG docker $USER
+
+# Log out and back in for group changes to take effect
+# Or run: newgrp docker
+
+# Verify Docker works without sudo
+docker run hello-world
 # make sure to Check The Download Folder in the docker-compose.yml file (The Third Mount, I added a Comment to it)
 # Then Basic just
 docker-compose up --build -d
 ```
-
-
-
