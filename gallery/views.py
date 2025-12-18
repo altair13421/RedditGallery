@@ -223,6 +223,42 @@ class FolderOptionsView(View):
                         main_settings.excluded_subreddits += f"{sub_reddit.sub_reddit},"
                         main_settings.save()
                 sub_reddit.save()
+            if "download_all" in data.keys():
+                images = Image.objects.filter(subreddit=sub_reddit)
+                for image in images:
+                    headers = {
+                        "User-Agent": "PostmanRuntime/7.46.1",
+                        # "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                        # "Accept-Language": "en-US,en;q=0.5",
+                        "Connection": "keep-alive",
+                    }
+                    try:
+                        response = requests.get(
+                            image.link, stream=True, headers=headers, timeout=20
+                        )
+                        response.raise_for_status()
+                        file_path = image.link.split("/")[-1]
+                        file_path = file_path.split("?")[0]
+                        if image.gallery is not None:
+                            file_path = f"{image.gallery.reddit_id}_{file_path}"
+                        FOLDER = f"{get_settings().downloads_folder}/{image.subreddit.sub_reddit}"
+                        if not os.path.exists(FOLDER):
+                            os.makedirs(FOLDER, exist_ok=True)
+                        file_path = f"{FOLDER}/{file_path}"
+                        with open(file_path, "wb") as ifile:
+                            for chunk in response.iter_content(chunk_size=1000000):
+                                ifile.write(chunk)
+                        saved, _ = SavedImages.objects.get_or_create(
+                            image=image,
+                            subreddit=image.subreddit,
+                            reddit_id=image.reddit_id,
+                            link=image.link,
+                            downloaded_at=file_path,
+                        )
+                        print("Saved Image:", saved)
+                    except Exception as e:
+                        print(e)
+                        print(f"couldn't save {image.link} | {image.subreddit}")
 
             elif "delete" in data.keys():
                 sub_reddit.delete()

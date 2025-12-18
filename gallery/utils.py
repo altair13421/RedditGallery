@@ -107,7 +107,7 @@ def get_subreddit_info(
                 "content": post.selftext,
                 "id": post.id,
                 "score": post.score,
-                "author": post.author,
+                "author": post.author or "[deleted]",
                 # "comments": post.num_comments,
                 "url": post.url,
                 "perma_url": f"{reddit_link}/{post.permalink}",
