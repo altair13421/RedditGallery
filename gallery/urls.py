@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-
+from .api import urlpatterns as api_urls
 
 urlpatterns = [
     path("", views.FolderView.as_view(), name="folder_view"),
@@ -30,4 +30,4 @@ urlpatterns = [
     # path('category/<str:category>/', views.ImageCategoryView.as_view(), name='image_category'),
     # path('archive/', views.ImageArchiveView.as_view(), name='image_archive'),
     # path('about/', views.AboutView.as_view(), name='about'),
-]
+] + api_urls

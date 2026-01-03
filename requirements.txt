@@ -13,7 +13,7 @@ idna==3.10
 pillow==11.2.1
 praw==7.8.1
 prawcore==2.4.0
-psycopg2-binary==2.9.10
+# psycopg2-binary==2.9.10
 Pygments==2.19.2
 python-dotenv==1.1.0
 requests==2.32.4
@@ -26,3 +26,4 @@ typing_extensions==4.14.1
 update-checker==0.18.0
 urllib3==2.5.0
 websocket-client==1.8.0
+djangorestframework
