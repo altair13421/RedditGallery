@@ -48,6 +48,9 @@ class ImageViewSet(ModelViewSet):
         self.queryset = self.queryset.order_by("-date_added")[:2000]
         return super().list(request, *args, **kwargs)
 
+    @action(detail=True, methods=['get', 'head'])
+    def download_image():
+        object = self.get_object()
 
 
 router = DefaultRouter("api")
