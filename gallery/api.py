@@ -45,11 +45,14 @@ class ImageViewSet(ModelViewSet):
     serializer_class = ImageSerializer
 
     def list(self, request, *args, **kwargs):
+        if (category := self.request.GET.get("category", "")) != "":
+            subreddits = SubReddit.objects.filter(categories__name=category)
+            self.queryset = self.queryset.filter(subreddit__in=subreddits)
         self.queryset = self.queryset.order_by("-date_added")[:2000]
         return super().list(request, *args, **kwargs)
 
     @action(detail=True, methods=['get', 'head'])
-    def download_image():
+    def download_image(self):
         object = self.get_object()
 
 
