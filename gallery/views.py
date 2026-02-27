@@ -104,8 +104,7 @@ class ImageListView(ListView):
         )
 
 class ImageSaveView(View):
-    def get(self, request, pk):
-        image = Image.objects.get(pk=pk)
+    def save_image(self, image):
         headers = {
             "User-Agent": "PostmanRuntime/7.46.1",
             # "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -135,12 +134,29 @@ class ImageSaveView(View):
                 link=image.link,
                 downloaded_at=file_path,
             )
-            print("Saved Image:", saved)
-            return HttpResponse("YES")
+            return saved, True
         except Exception as e:
             print(e)
             print(f"couldn't save {image.link} | {image.subreddit}")
-            return HttpResponse(e)
+            return e, False
+    
+    def get(self, request, pk):
+        image = Image.objects.get(pk=pk)
+        if request.GET.get("gallery", "") == "true":
+            gallery = image.gallery
+            if gallery:
+                images = gallery.image_set.all()
+                for img in images:
+                    saved, confirm = self.save_image(img)
+                    print("Saved Image:", saved)
+            return HttpResponse("YES")
+        else:
+            saved, confirm = self.save_image(image)
+            if confirm:
+                print("Saved Image:", saved)
+                return HttpResponse("YES")
+            else:
+                return HttpResponse(f"NO, {saved}")
 
 
 class SavedImagesView(ListView):

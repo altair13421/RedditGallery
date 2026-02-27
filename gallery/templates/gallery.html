@@ -77,7 +77,7 @@
             <h1 class="mb-2">{% if active_sub %}{{active_sub}}{% endif %}{% if category_name %}{{ category_name }}{% endif %} Gallery</h1>
             <p>
                 {% for category in the_sub.categories.all %}
-                    <span class="badge bg-primary me-1">{{ category.name }}</span>
+                    <a href="{% url 'gallery' %}?category={{ category.name }}"><span class="badge bg-primary me-1">{{ category.name }}</span></a>
                 {% endfor %}
             </p>
             <p class="text-muted">Total Images: {{ total_images }}</p>
@@ -172,6 +172,14 @@
                                         title="Download image">
                                     <i class="fas fa-download"></i>
                                 </button>
+                                {% if image.gallery %}
+                                <button class="btn btn-sm btn-primary download-btn"
+                                        data-url="{% url 'image_save' image.pk %}?gallery=true"
+                                        data-title="{{ image.post_ref.title }}"
+                                        title="Download gallery">
+                                    <i class="fas fa-anchor"></i>
+                                </button>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="card-body p-2">
