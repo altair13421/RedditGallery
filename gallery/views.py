@@ -128,13 +128,13 @@ class ImageSaveView(View):
                 with open(file_path, "wb") as ifile:
                     for chunk in response.iter_content(chunk_size=1000000):
                         ifile.write(chunk)
-                saved, _ = SavedImages.objects.get_or_create(
-                    image=image,
-                    subreddit=image.subreddit,
-                    reddit_id=image.reddit_id,
-                    link=image.link,
-                    downloaded_at=file_path,
-                )
+            saved, _ = SavedImages.objects.get_or_create(
+                image=image,
+                subreddit=image.subreddit,
+                reddit_id=image.reddit_id,
+                link=image.link,
+                downloaded_at=file_path,
+            )
             return saved, True
         except Exception as e:
             print(e)
