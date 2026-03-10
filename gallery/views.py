@@ -124,22 +124,23 @@ class ImageSaveView(View):
             if not os.path.exists(FOLDER):
                 os.makedirs(FOLDER, exist_ok=True)
             file_path = f"{FOLDER}/{file_path}"
-            with open(file_path, "wb") as ifile:
-                for chunk in response.iter_content(chunk_size=1000000):
-                    ifile.write(chunk)
-            saved, _ = SavedImages.objects.get_or_create(
-                image=image,
-                subreddit=image.subreddit,
-                reddit_id=image.reddit_id,
-                link=image.link,
-                downloaded_at=file_path,
-            )
+            if not os.path.exists(file_path):
+                with open(file_path, "wb") as ifile:
+                    for chunk in response.iter_content(chunk_size=1000000):
+                        ifile.write(chunk)
+                saved, _ = SavedImages.objects.get_or_create(
+                    image=image,
+                    subreddit=image.subreddit,
+                    reddit_id=image.reddit_id,
+                    link=image.link,
+                    downloaded_at=file_path,
+                )
             return saved, True
         except Exception as e:
             print(e)
             print(f"couldn't save {image.link} | {image.subreddit}")
             return e, False
-    
+
     def get(self, request, pk):
         image = Image.objects.get(pk=pk)
         if request.GET.get("gallery", "") == "true":
