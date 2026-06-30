@@ -549,10 +549,9 @@ class BulkUploadSubreddits(View):
                 self._handle_export_subs()
                 return redirect("folder_view")
             json_data = request.POST.get("json_data", "")
-
             data = json.loads(json_data)
             subs = data.get("subs", [])
-            if isinstance(subs[0], dict):
+            if isinstance(subs, dict):
                 self._handle_subs_with_categories(subs)
             else:
                 self._handle_subs_only(subs)
