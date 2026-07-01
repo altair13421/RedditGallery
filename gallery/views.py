@@ -241,8 +241,7 @@ class FolderOptionsView(View):
                         main_settings.save()
                 sub_reddit.save()
             if "download_all" in data.keys():
-                images = Image.objects.filter(subreddit=sub_reddit)
-                for image in images:
+                for image in Image.iter_images(subreddit=sub_reddit):
                     headers = {
                         "User-Agent": "PostmanRuntime/7.46.1",
                         # "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",

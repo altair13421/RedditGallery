@@ -22,6 +22,10 @@ class SubReddit(models.Model):
     def __str__(self):
         return f"{self.sub_reddit} - Active: {self.is_active} - Excluded: {self.excluded}"
 
+    @staticmethod
+    def iter_subreddits(chunk_size: int = 1000, **filters):
+        qs = SubReddit.objects.filter(**filters).order_by("-id")
+        yield from qs.iterator(chunk_size=chunk_size)
 
 class Post(models.Model):
     subreddit = models.ForeignKey(
@@ -50,6 +54,11 @@ class Post(models.Model):
         Check if the post is deleted by looking for a Deleted entry with the same reddit_id.
         """
         return Deleted.objects.filter(post=self).exists()
+
+    @staticmethod
+    def iter_posts(chunk_size: int = 3000, **filters):
+        qs = Post.objects.filter(**filters).order_by("-id")
+        yield from qs.iterator(chunk_size=chunk_size)
 
 
 class Gallery(models.Model):
@@ -84,6 +93,11 @@ class Image(models.Model):
         Check if the image is deleted by looking for a Deleted entry with the same reddit_id.
         """
         return Deleted.objects.filter(image=self).exists()
+
+    @staticmethod
+    def iter_images(chunk_size: int = 3000, **filters):
+        qs = Image.objects.filter(**filters).order_by("-id")
+        yield from qs.iterator(chunk_size=chunk_size)
 
 
 class Deleted(models.Model):

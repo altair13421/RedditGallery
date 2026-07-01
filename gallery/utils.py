@@ -492,8 +492,7 @@ def sync_data():
     Syncs data from the Reddit API to the local database.
     This function should be called periodically to keep the database updated.
     """
-    subreddits = SubReddit.objects.filter(is_active=True).order_by("-id")
-    for subreddit in subreddits:
+    for subreddit in SubReddit.iter_subreddits(is_active=True):
         get_posts(subreddit)
 
 
