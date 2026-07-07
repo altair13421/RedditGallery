@@ -261,9 +261,10 @@ class FolderOptionsView(View):
                         if not os.path.exists(FOLDER):
                             os.makedirs(FOLDER, exist_ok=True)
                         file_path = f"{FOLDER}/{file_path}"
-                        with open(file_path, "wb") as ifile:
-                            for chunk in response.iter_content(chunk_size=1000000):
-                                ifile.write(chunk)
+                        if not os.path.exists(file_path):
+                            with open(file_path, "wb") as ifile:
+                                for chunk in response.iter_content(chunk_size=1000000):
+                                    ifile.write(chunk)
                         saved, _ = SavedImages.objects.get_or_create(
                             image=image,
                             subreddit=image.subreddit,
@@ -271,7 +272,7 @@ class FolderOptionsView(View):
                             link=image.link,
                             downloaded_at=file_path,
                         )
-                        print("Saved Image:", saved)
+                        print("Saved Image:", saved, " | ", sub_reddit)
                     except Exception as e:
                         print(e)
                         print(f"couldn't save {image.link} | {image.subreddit}")
