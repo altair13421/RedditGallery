@@ -62,7 +62,7 @@ class FolderOnlyView(DetailView):
         context["subs"] = SubReddit.objects.all()
         context["active_sub"] = subreddit.sub_reddit
         context["the_sub"] = subreddit
-        context["images"] = images
+        context["images"] = images[:2000]
         return context
 
 
@@ -94,7 +94,7 @@ class ImageListView(ListView):
                     .filter(subreddit__in=category.subs)
                     .order_by("-date_added")
                     .all()
-                )
+                )[:2000]
                 return images
         return (
             Image.objects.select_related()
