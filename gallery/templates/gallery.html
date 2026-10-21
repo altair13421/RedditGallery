@@ -77,19 +77,20 @@
 </div>
 <!-- Gallery Content -->
 <div class="row mb-4">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <div>
-            <h1 class="mb-2">{% if active_sub %}{{active_sub}}{% endif %}{% if category_name %}{{ category_name }}{% endif %} Gallery</h1>
-            <p>
+    <div class="col-12 d-flex justify-content-between align-items-end flex-wrap gap-3">
+        <div class="gallery-heading">
+            <p class="eyebrow mb-2"><i class="fas fa-sparkles me-2"></i>THE COLLECTION</p>
+            <h1 class="mb-2">{% if active_sub %}{{active_sub}}{% elif category_name %}{{ category_name }}{% else %}A little visual inspiration{% endif %}</h1>
+            <div class="gallery-summary">
+                <span class="image-count"><i class="fas fa-image me-2"></i>{{ total_images }} images</span>
                 {% for category in the_sub.categories.all %}
-                    <a href="{% url 'gallery' %}?category={{ category.name }}"><span class="badge bg-primary me-1">{{ category.name }}</span></a>
+                    <a href="{% url 'gallery' %}?category={{ category.name }}" class="category-pill">{{ category.name }}</a>
                 {% endfor %}
-            </p>
-            <p class="text-muted">Total Images: {{ total_images }}</p>
+            </div>
         </div>
         {% if the_sub %}
-        <div class="btn-group" role="group">
-            <form method="post" action="{% url 'folder_options' %}">
+        <div class="gallery-actions">
+            <form method="post" action="{% url 'folder_options' %}" class="d-flex flex-wrap gap-2">
                 {% csrf_token %}
                 <input type="hidden" name="pk" value="{{ the_sub.pk }}">
                 <input type="hidden" name="category" value="{{ category_name }}">
@@ -112,8 +113,8 @@
             </form>
         </div>
         {% else %}
-        <div class="btn-group" role="group">
-            <form method="post" action="{% url 'folder_options' %}">
+        <div class="gallery-actions">
+            <form method="post" action="{% url 'folder_options' %}" class="d-flex flex-wrap gap-2">
                 {% csrf_token %}
                 <input type="hidden" name="category" value="{{ category_name }}">
                 <button type="submit" name="sync" class="btn btn-outline-success">
@@ -132,7 +133,7 @@
     <div class="row">
 
         <!-- Sidebar -->
-        <div class="col-md-3 col-lg-2 d-md-block sidebar bg-light">
+        <aside class="col-md-3 col-lg-2 sidebar">
             <div class="position-sticky pt-3">
                 <h6 class="sidebar-heading px-3 mb-1 text-muted">
                     <i class="fas fa-folder-tree me-2"></i>Folders
@@ -142,16 +143,16 @@
                     <li class="nav-item">
                         <a class="nav-link {% if active_sub == folder.sub_reddit %}active{% endif %}" href="{% url 'folder_view_detail' folder.pk %}">
                             {% comment %} <i class="fas fa-folder me-2"></i>{{ folder.name }} {% endcomment %}
-                            <span class="badge bg-secondary float-end">{{ folder.sub_reddit }}</span>
+                            <span class="folder-name">{{ folder.sub_reddit }}</span>
                         </a>
                     </li>
                     {% endfor %}
                 </ul>
             </div>
-        </div>
+        </aside>
 
         <!-- Gallery Images -->
-        <div class="col-md-10">
+        <section class="col-md-9 col-lg-10 gallery-feed">
             <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3">
                 {% for image in images %}
                 <div class="col">
@@ -188,26 +189,33 @@
                             </div>
                         </div>
                         <div class="card-body p-2">
-                            <p class="card-text text-truncate small">{{ image.post_ref.title }}</p>
-                            <p class="card-text text-truncate small muted"><a href='{{ image.post_ref.author_url }}'>{{ image.post_ref.author }}</a></p>
-                            <p class="card-text text-truncate small muted"> <a href="{% url 'folder_view_detail' image.subreddit.id %}">{{ image.subreddit.sub_reddit }}</a></p>
+                            <p class="card-text text-truncate small image-title">{{ image.post_ref.title }}</p>
+                            <p class="card-text text-truncate small muted image-author"><a href='{{ image.post_ref.author_url }}'>{{ image.post_ref.author }}</a></p>
+                            <p class="card-text text-truncate small muted image-community"><a href="{% url 'folder_view_detail' image.subreddit.id %}"><i class="fas fa-hashtag me-1"></i>{{ image.subreddit.sub_reddit }}</a></p>
                         </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="empty-gallery">
+                        <span class="empty-gallery-icon"><i class="far fa-images"></i></span>
+                        <h2>Nothing in this collection yet</h2>
+                        <p class="mb-0">Try another folder or come back after your next sync.</p>
                     </div>
                 </div>
                 {% endfor %}
             </div>
-        </div>
+        </section>
     </div>
 
     <!-- Loading Indicator -->
-    <div class="row justify-content-center mt-4">
-        <div class="col-auto">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="text-muted mt-2">Loading more images...</p>
-        </div>
+    {% if images %}
+    <div class="gallery-endnote">
+        <span></span>
+        <p><i class="fas fa-check me-2"></i>You've reached the end of this view</p>
+        <span></span>
     </div>
+    {% endif %}
 </div>
 
 <script>
@@ -592,4 +600,244 @@ document.getElementById('modalDownloadBtn').addEventListener('click', async func
             margin: 4px 12px;
         }
     </style>
+<style>
+    .gallery-heading h1 {
+        margin: 0;
+        font-size: clamp(1.8rem, 3vw, 2.55rem);
+        font-weight: 760;
+        letter-spacing: -0.055em;
+    }
+
+    .eyebrow {
+        color: var(--primary-color);
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.15em;
+    }
+
+    .gallery-summary {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.6rem;
+    }
+
+    .image-count,
+    .category-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0.25rem 0.65rem;
+        color: var(--ink-soft);
+        background: #eceae5;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 650;
+        text-decoration: none;
+    }
+
+    .category-pill {
+        color: #a34736;
+        background: #fff0eb;
+    }
+
+    .gallery-actions .btn {
+        min-height: 38px;
+        padding: 0.45rem 0.72rem;
+        font-size: 0.8rem;
+    }
+
+    .sidebar {
+        align-self: flex-start;
+        position: sticky;
+        top: 92px;
+        max-height: calc(100vh - 110px);
+        overflow-y: auto;
+        padding: 1rem 0.7rem;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .sidebar-heading {
+        padding: 0.55rem 0.75rem 0.85rem;
+        color: var(--muted) !important;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+
+    .sidebar .nav-link {
+        display: block;
+        margin: 0.15rem 0;
+        padding: 0.62rem 0.72rem;
+        color: var(--ink-soft);
+        border-radius: 10px;
+        font-size: 0.84rem;
+        font-weight: 600;
+        transition: color 0.16s ease, background 0.16s ease;
+    }
+
+    .sidebar .nav-link:hover,
+    .sidebar .nav-link.active {
+        color: var(--primary-color);
+        background: #fff1ed;
+    }
+
+    .folder-name {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .gallery-feed {
+        min-width: 0;
+    }
+
+    .gallery-card {
+        overflow: hidden;
+        background: var(--surface);
+        border: 1px solid var(--line) !important;
+        border-radius: 14px !important;
+        box-shadow: 0 4px 14px rgba(38, 41, 48, 0.045) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .gallery-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 14px 28px rgba(38, 41, 48, 0.12) !important;
+    }
+
+    .gallery-card > .position-relative {
+        overflow: hidden;
+        background: #e7e5e1;
+    }
+
+    .gallery-image {
+        width: 100%;
+        height: 190px !important;
+        object-fit: cover;
+        transition: transform 0.35s ease;
+    }
+
+    .gallery-card:hover .gallery-image {
+        transform: scale(1.035);
+    }
+
+    .gallery-card .card-body {
+        min-width: 0;
+        padding: 0.8rem 0.85rem !important;
+    }
+
+    .image-title {
+        margin-bottom: 0.55rem;
+        color: var(--text-dark);
+        font-size: 0.84rem;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .image-author,
+    .image-community {
+        margin-bottom: 0.3rem;
+        font-size: 0.73rem;
+    }
+
+    .image-community a {
+        color: var(--primary-color);
+        font-weight: 650;
+    }
+
+    .download-btn {
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        color: var(--text-dark);
+        background: rgba(255, 255, 255, 0.95);
+        border: 0;
+        border-radius: 10px !important;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16);
+    }
+
+    .download-btn:hover {
+        color: var(--primary-color);
+        background: #fff;
+    }
+
+    .empty-gallery {
+        padding: 4rem 1rem;
+        text-align: center;
+        background: var(--surface);
+        border: 1px dashed #d6d3cc;
+        border-radius: 16px;
+    }
+
+    .empty-gallery-icon {
+        display: grid;
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 1rem;
+        place-items: center;
+        color: var(--primary-color);
+        background: #fff0eb;
+        border-radius: 18px;
+        font-size: 1.35rem;
+    }
+
+    .empty-gallery h2 {
+        font-size: 1.2rem;
+        font-weight: 750;
+    }
+
+    .empty-gallery p {
+        color: var(--muted);
+        font-size: 0.9rem;
+    }
+
+    .gallery-endnote {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        margin: 2rem auto 0;
+        color: var(--muted);
+        font-size: 0.78rem;
+    }
+
+    .gallery-endnote span {
+        width: 52px;
+        height: 1px;
+        background: var(--line);
+    }
+
+    #imageModal .modal-content {
+        background: #202126;
+    }
+
+    @media (max-width: 767.98px) {
+        .sidebar {
+            position: static;
+            max-height: 210px;
+            margin-bottom: 1rem;
+        }
+
+        .gallery-actions {
+            width: 100%;
+        }
+
+        .gallery-actions form {
+            justify-content: flex-start;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .gallery-image {
+            height: 150px !important;
+        }
+    }
+</style>
 {% endblock %}

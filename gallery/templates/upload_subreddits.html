@@ -1,10 +1,12 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <div class="container">
-        <div class="card shadow-sm">
+    <div class="container import-page">
+        <div class="card import-card">
             <div class="card-body">
-                <h2 class="card-title text-center">Upload Subreddits JSON</h2>
+                <p class="import-eyebrow">COLLECTION TOOLS</p>
+                <h1 class="card-title">Import communities</h1>
+                <p class="import-description">Paste a JSON list to add communities to your gallery, or export your current list.</p>
                 <form method="post">
                     {% csrf_token %}
                     <div class="mb-3">
@@ -18,4 +20,49 @@
             </div>
         </div>
     </div>
+    <style>
+        .import-page {
+            max-width: 760px;
+            padding: 0;
+        }
+
+        .import-card {
+            overflow: hidden;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .import-card .card-body {
+            padding: clamp(1.25rem, 4vw, 2.5rem);
+        }
+
+        .import-eyebrow {
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+        }
+
+        .import-card h1 {
+            margin-bottom: 0.45rem;
+            font-size: clamp(1.6rem, 4vw, 2.1rem);
+            font-weight: 760;
+        }
+
+        .import-description {
+            margin-bottom: 1.5rem;
+            color: var(--muted);
+        }
+
+        .import-card textarea {
+            min-height: 210px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.84rem;
+        }
+
+        .import-card input[type="submit"] {
+            margin-top: 0.5rem;
+        }
+    </style>
 {% endblock %}

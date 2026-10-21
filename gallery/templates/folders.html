@@ -78,7 +78,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="exampleModalLabel">Add New Item</h5>
-                    <button type="button" class="btn-close" data-bs-close="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form method="post" action="{% url 'folder_view' %}">
@@ -552,7 +552,232 @@ function toggleGallery(categoryName) {
 }
 </script>
 
+<style>
+    .container-fluid {
+        padding-right: 0;
+        padding-left: 0;
+    }
 
+    .row.mb-4 > .col-12 > div:first-child h1 {
+        margin: 0;
+        font-size: clamp(1.8rem, 3vw, 2.55rem);
+        font-weight: 760;
+        letter-spacing: -0.055em;
+    }
 
+    .row.mb-4 > .col-12 > div:first-child p {
+        margin: 0.55rem 0 0;
+        font-size: 0.87rem;
+    }
 
+    .row.mb-4 > .col-12 > .btn-group {
+        padding: 0.45rem;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .row.mb-4 > .col-12 > .btn-group form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .row.mb-4 > .col-12 > .btn-group .btn {
+        margin: 0;
+        border-radius: 9px !important;
+        font-size: 0.8rem;
+    }
+
+    .d-flex.justify-content-between.align-items-center.mb-4.p-3.bg-light {
+        min-height: 62px;
+        padding: 0.8rem 1rem !important;
+        background: transparent !important;
+        border-bottom: 1px solid var(--line);
+        border-radius: 0 !important;
+    }
+
+    .d-flex.justify-content-between.align-items-center.mb-4.p-3.bg-light h5 {
+        font-size: 1rem;
+        font-weight: 750;
+    }
+
+    .category-section {
+        overflow: hidden;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .category-header {
+        min-height: 78px;
+        padding: 1rem 1.25rem !important;
+        background: var(--surface) !important;
+        border: 0 !important;
+        border-bottom: 1px solid var(--line) !important;
+        transition: background-color 0.18s ease;
+    }
+
+    .category-header:hover,
+    .category-header[aria-expanded="true"] {
+        background: #fbfaf8 !important;
+        box-shadow: none !important;
+        transform: none;
+    }
+
+    .category-header h4 {
+        font-size: 1rem;
+        font-weight: 750;
+    }
+
+    .category-header .fa-folder,
+    .category-header .fa-folder-open {
+        color: var(--primary-color) !important;
+    }
+
+    .category-header .badge {
+        color: #a34736;
+        background: #fff0eb !important;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    .category-header .gallery-btn {
+        color: var(--primary-color);
+        background: #fff;
+        border-color: #efb2a5;
+        border-radius: 9px;
+    }
+
+    .category-header .gallery-btn:hover,
+    .category-header .gallery-btn.active {
+        color: white;
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .category-header .transition-icon {
+        color: var(--muted) !important;
+        font-size: 0.78rem;
+    }
+
+    .category-section .card-body {
+        padding: 0 !important;
+    }
+
+    .category-section .grid-view {
+        padding: 1.2rem !important;
+    }
+
+    .folder-card {
+        min-height: 180px;
+        background: #fff;
+        border: 1px solid var(--line) !important;
+        border-radius: 14px !important;
+        box-shadow: 0 3px 12px rgba(38, 41, 48, 0.04) !important;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .folder-card:hover {
+        transform: translateY(-3px);
+        border-color: #efb2a5 !important;
+        box-shadow: 0 12px 25px rgba(38, 41, 48, 0.09) !important;
+    }
+
+    .folder-card .card-body {
+        padding: 1.15rem 0.7rem !important;
+    }
+
+    .folder-card .fa-folder {
+        color: var(--primary-color) !important;
+        font-size: 2rem;
+    }
+
+    .folder-card .card-title {
+        margin: 0.35rem 0;
+        font-weight: 700;
+    }
+
+    .folder-card .badge {
+        color: #696e77 !important;
+        background: #f3f2ef !important;
+        border-color: #e8e6e1 !important;
+    }
+
+    .folder-card .badge a {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .folder-card .settings-btn {
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        color: var(--muted);
+        border-color: var(--line);
+        border-radius: 9px;
+    }
+
+    .folder-card .settings-btn:hover {
+        color: var(--primary-color);
+        background: #fff1ed;
+        border-color: #efb2a5;
+    }
+
+    .floating-btn {
+        right: 2rem;
+        bottom: 2rem;
+        width: 54px;
+        height: 54px;
+        color: #fff;
+        background: var(--primary-color);
+        border: none;
+        box-shadow: 0 8px 20px rgba(232, 93, 67, 0.3);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .floating-btn:hover {
+        background: var(--secondary-color);
+        box-shadow: 0 11px 24px rgba(232, 93, 67, 0.36);
+        transform: translateY(-2px);
+    }
+
+    #settingsModal .modal-header,
+    #exampleModal .modal-header {
+        padding: 1.2rem 1.35rem;
+        border-bottom-color: var(--line);
+    }
+
+    #settingsModal .modal-footer {
+        border-top-color: var(--line);
+    }
+
+    @media (max-width: 575.98px) {
+        .category-header {
+            padding: 0.8rem !important;
+        }
+
+        .category-header > div:first-child {
+            gap: 0.35rem;
+        }
+
+        .category-header .fa-folder {
+            margin-right: 0.25rem !important;
+            font-size: 1.1rem;
+        }
+
+        .category-header .badge {
+            margin-left: 0.4rem !important;
+        }
+
+        .category-header .gallery-btn {
+            margin-right: 0.6rem !important;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.72rem;
+        }
+    }
+</style>
 {% endblock %}
